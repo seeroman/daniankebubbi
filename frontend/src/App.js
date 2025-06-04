@@ -21,7 +21,7 @@ function App() {
 */}
         <Route
           path="*"
-          element={<div className="text-center p-4">404 Not Found</div>}
+          element={<div className="text-center p-4">HI ROMAN!</div>}
         />
       </Routes>
     </Router>
