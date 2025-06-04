@@ -10,9 +10,35 @@ if (!API_BASE_URL) {
 
 const KitchenPage = () => {
   const [orders, setOrders] = useState([]);
+  const [completedToday, setCompletedToday] = useState(0);
+  const [completedTotal, setCompletedTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const audioRef = useRef(null);
   const prevOrderIds = useRef([]);
+
+  const fetchCompletedStats = async () => {
+    try {
+      const [todayRes, totalRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/orders/completed/today`),
+        fetch(`${API_BASE_URL}/api/orders/completed/total`),
+      ]);
+      const todayData = await todayRes.json();
+      const totalData = await totalRes.json();
+      setCompletedToday(todayData.completed_orders_today);
+      setCompletedTotal(totalData.completed_orders_total);
+    } catch (error) {
+      console.error('Failed to fetch completed order stats:', error);
+    }
+  };
+  useEffect(() => {
+    fetchOrders();
+    fetchCompletedStats();
+    const interval = setInterval(() => {
+      fetchOrders();
+      fetchCompletedStats();
+    }, 5000); // Update both every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   // Load audio on mount
   useEffect(() => {
@@ -74,6 +100,22 @@ const KitchenPage = () => {
   return (
     <div className="p-4 bg-gray-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-center">👨‍🍳 Kitchen View</h1>
+
+      {/* Completed Stats */}
+      <div className="flex justify-end mb-4 gap-6 pr-4">
+        <div className="bg-white rounded-lg shadow px-4 py-2 text-center">
+          <div className="text-sm text-gray-500">Completed Today</div>
+          <div className="text-xl font-bold text-green-600">
+            {completedToday}
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow px-4 py-2 text-center">
+          <div className="text-sm text-gray-500">Total Completed</div>
+          <div className="text-xl font-bold text-blue-600">
+            {completedTotal}
+          </div>
+        </div>
+      </div>
 
       {orders.length === 0 ? (
         <p className="text-center text-gray-600">No active orders.</p>
