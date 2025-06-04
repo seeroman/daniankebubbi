@@ -25,10 +25,20 @@ def create_order():
         order_time = now.strftime('%d-%m-%y %I:%M %p')  # e.g., 04-06-25 11:57 AM
     payment_status = data.get('paymentStatus', 'UNPAID')  # Default to UNPAID
 
+     # Generate custom_order_id
+    today_prefix = now.strftime('%d%m%y')  # e.g. 040625
     conn = get_db_connection()
+    result = conn.execute(
+        "SELECT COUNT(*) as count FROM orders WHERE time LIKE ?",
+        (now.strftime('%d-%m-%y') + '%',)
+    ).fetchone()
+    daily_count = result['count'] + 1
+    custom_order_id = f"{today_prefix}-{daily_count:03d}"  # e.g. 040625-001
+    
     conn.execute(
-        'INSERT INTO orders (waiter, customer, items, status, time, paymentStatus) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO orders (custom_order_id, waiter, customer, items, status, time, paymentStatus) VALUES (?, ?, ?, ?, ?, ?)',
         (
+            custom_order_id,
             data['waiter'],
             data.get('customer', ''),
             json.dumps(data['items']),
@@ -49,6 +59,7 @@ def get_orders():
     return jsonify([
         {
             'id': row['id'],
+            'custom_order_id': row['custom_order_id'],
             'waiter': row['waiter'],
             'customer': row['customer'],
             'items': json.loads(row['items']),
@@ -65,3 +76,25 @@ def mark_order_done(order_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'Order marked as done'})
+
+@app.route('/api/orders/completed/today', methods=['GET'])
+def get_completed_orders_today():
+    LOCAL_TIMEZONE = pytz.timezone('Europe/Helsinki')
+    today = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE).strftime('%d-%m-%y')
+
+    conn = get_db_connection()
+    orders = conn.execute(
+        'SELECT COUNT(*) as total FROM orders WHERE status = "DONE" AND time LIKE ?',
+        (f'{today}%',)
+    ).fetchone()
+    conn.close()
+
+    return jsonify({'completed_orders_today': orders['total']})
+
+@app.route('/api/orders/completed/total', methods=['GET'])
+def get_completed_orders_total():
+    conn = get_db_connection()
+    orders = conn.execute('SELECT COUNT(*) as total FROM orders WHERE status = "DONE"').fetchone()
+    conn.close()
+
+    return jsonify({'completed_orders_total': orders['total']})
