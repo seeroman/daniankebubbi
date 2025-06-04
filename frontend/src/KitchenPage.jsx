@@ -87,6 +87,27 @@ const KitchenPage = () => {
       console.error('Failed to mark order as done:', error);
     }
   };
+  const handleResetCounts = async () => {
+    const password = prompt('Enter password to reset counts:');
+
+    if (password !== '2025') {
+      alert('❌ Incorrect password.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/orders/reset-completed`, {
+        method: 'POST',
+      });
+
+      const data = await res.json();
+      alert(data.message || '✅ Reset successful.');
+      fetchCompletedStats(); // refresh the counters
+    } catch (error) {
+      console.error('Reset failed:', error);
+      alert('❌ Failed to reset counts.');
+    }
+  };
 
   if (loading) {
     return (
@@ -115,6 +136,14 @@ const KitchenPage = () => {
             {completedTotal}
           </div>
         </div>
+      </div>
+      <div className="flex justify-end pr-4 mb-6">
+        <button
+          onClick={handleResetCounts}
+          className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded shadow"
+        >
+          🔁 Reset Counts
+        </button>
       </div>
 
       {orders.length === 0 ? (
