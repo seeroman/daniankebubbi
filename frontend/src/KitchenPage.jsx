@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL || 'https://daniankebubbi.onrender.com';
+
+if (!API_BASE_URL) {
+  console.warn(
+    '⚠️ REACT_APP_API_BASE_URL is not defined. Check your .env file.',
+  );
+}
 
 const KitchenPage = () => {
   const [orders, setOrders] = useState([]);
