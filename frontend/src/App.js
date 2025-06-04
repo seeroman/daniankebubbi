@@ -19,10 +19,7 @@ function App() {
   <Route path="/admin/menu" element={<MenuManager />} />
   <Route path="/admin/orders" element={<OrderHistory />} />
 */}
-        <Route
-          path="*"
-          element={<div className="text-center p-4">HI ROMAN!</div>}
-        />
+        <Route path="*" element={<WaiterPage />} />
       </Routes>
     </Router>
   );
