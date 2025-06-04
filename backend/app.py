@@ -13,6 +13,21 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+@app.route('/debug/schema')
+def debug_schema():
+    conn = get_db_connection()
+    result = conn.execute("PRAGMA table_info(orders)").fetchall()
+    conn.close()
+    return jsonify([{col["name"]: col["type"]} for col in result])
+
+@app.route('/debug/fix-custom-order-id')
+def fix_custom_order_id():
+    conn = get_db_connection()
+    conn.execute("ALTER TABLE orders ADD COLUMN custom_order_id TEXT;")
+    conn.commit()
+    conn.close()
+    return "✅ custom_order_id column added!"
+
 @app.route('/api/orders', methods=['POST'])
 def create_order():
     data = request.get_json()
