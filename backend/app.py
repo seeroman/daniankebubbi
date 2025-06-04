@@ -113,3 +113,12 @@ def get_completed_orders_total():
     conn.close()
 
     return jsonify({'completed_orders_total': orders['total']})
+
+
+@app.route('/api/orders/reset-completed', methods=['POST'])
+def reset_completed_orders():
+    conn = get_db_connection()
+    conn.execute('DELETE FROM orders WHERE status = "DONE"')
+    conn.commit()
+    conn.close()
+    return jsonify({'message': '✅ Completed orders reset successfully.'})
