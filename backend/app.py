@@ -51,7 +51,7 @@ def create_order():
     custom_order_id = f"{today_prefix}-{daily_count:03d}"  # e.g. 040625-001
     
     conn.execute(
-        'INSERT INTO orders (custom_order_id, waiter, customer, items, status, time, paymentStatus) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO orders (custom_order_id, waiter, customer, items, status, time, paymentStatus) VALUES (?, ?, ?, ?, ?, ?,?)',
         (
             custom_order_id,
             data['waiter'],
