@@ -3,6 +3,7 @@ import sqlite3
 import json
 from flask_cors import CORS
 from datetime import datetime
+import pytz
 
 app = Flask(__name__)
 CORS(app)
@@ -17,7 +18,11 @@ def create_order():
     data = request.get_json()
     print("📦 Received Order Data:", data)
     # Add current timestamp
-    order_time = data.get('time') or datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
+    LOCAL_TIMEZONE = pytz.timezone('Europe/Helsinki')  # Change if needed
+    order_time = data.get('time')
+    if not order_time:
+        now = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE)
+        order_time = now.strftime('%d-%m-%y %I:%M %p')  # e.g., 04-06-25 11:57 AM
     payment_status = data.get('paymentStatus', 'UNPAID')  # Default to UNPAID
 
     conn = get_db_connection()
