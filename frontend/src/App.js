@@ -25,7 +25,7 @@ function App() {
     <Router>
       <Routes>
         {/* Home redirects to Waiter page */}
-        <Route path="/" element={<Navigate replace to="/waiter" />} />
+        <Route path="/" element={<Navigate replace to="/kitchen" />} />
 
         {/* Main routes */}
         <Route path="/waiter" element={<WaiterPage />} />
