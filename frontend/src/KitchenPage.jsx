@@ -16,7 +16,7 @@ const KitchenPage = () => {
 
   // Load audio on mount
   useEffect(() => {
-    audioRef.current = new Audio('/beep.wav');
+    audioRef.current = new Audio('/sound.wav');
   }, []);
 
   const fetchOrders = async () => {
