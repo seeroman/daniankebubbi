@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const sampleFoodItems = [
   { id: 1, name: 'Pita Kebab', type: 'main' },
@@ -70,7 +71,7 @@ const WaiterPage = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/orders', {
+      const response = await axios.post(`${API_BASE_URL}/api/orders`, {
         waiter: waiterName,
         customer: customerName,
         items: orderItems,

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const KitchenPage = () => {
   const [orders, setOrders] = useState([]);
@@ -13,7 +14,7 @@ const KitchenPage = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/orders');
+      const response = await fetch(`${API_BASE_URL}/api/orders`);
       const data = await response.json();
 
       // Detect new orders
@@ -45,7 +46,7 @@ const KitchenPage = () => {
 
   const handleMarkDone = async (orderId) => {
     try {
-      await fetch(`http://127.0.0.1:5000/api/orders/${orderId}`, {
+      await fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
         method: 'PATCH',
       });
       fetchOrders();
