@@ -16,8 +16,8 @@ def get_db_connection():
 def create_order():
     data = request.get_json()
     print("📦 Received Order Data:", data)
-    # Add current timestamp if not provided
-    order_time = data.get('time') or datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    # Add current timestamp
+    order_time = data.get('time') or datetime.now().strftime('%Y-%m-%d %H:%M:%S') 
     payment_status = data.get('paymentStatus', 'UNPAID')  # Default to UNPAID
 
     conn = get_db_connection()
