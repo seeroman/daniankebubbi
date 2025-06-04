@@ -6,6 +6,7 @@ import {
   Navigate,
 } from 'react-router-dom';
 
+import HomePage from './HomePage';
 import WaiterPage from './WaiterPage';
 import KitchenPage from './KitchenPage';
 
@@ -24,8 +25,8 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Home redirects to Waiter page */}
-        <Route path="/" element={<Navigate replace to="/waiter" />} />
+        {/* Home page with buttons */}
+        <Route path="/" element={<HomePage />} />
 
         {/* Main routes */}
         <Route path="/waiter" element={<WaiterPage />} />
@@ -37,7 +38,7 @@ function App() {
         <Route path="/admin/menu" element={<MenuManager />} />
         <Route path="/admin/orders" element={<OrderHistory />} />
 
-        {/* Fallback route for unmatched URLs */}
+        {/* Fallback */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
