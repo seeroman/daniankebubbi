@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+
 const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL || 'https://daniankebubbi.onrender.com';
 
@@ -30,20 +31,6 @@ const KitchenPage = () => {
       console.error('Failed to fetch completed order stats:', error);
     }
   };
-  useEffect(() => {
-    fetchOrders();
-    fetchCompletedStats();
-    const interval = setInterval(() => {
-      fetchOrders();
-      fetchCompletedStats();
-    }, 5000); // Update both every 5 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  // Load audio on mount
-  useEffect(() => {
-    audioRef.current = new Audio('/sound.wav');
-  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -72,9 +59,26 @@ const KitchenPage = () => {
   };
 
   useEffect(() => {
-    fetchOrders(); // Initial load
-    const interval = setInterval(fetchOrders, 5000); // Refresh every 5 sec
-    return () => clearInterval(interval);
+    // Load audio on mount
+    audioRef.current = new Audio('/sound.wav');
+
+    // Initial fetch
+    fetchOrders();
+    fetchCompletedStats();
+
+    // Set up interval for auto-refresh
+    const interval = setInterval(() => {
+      fetchOrders();
+      fetchCompletedStats();
+    }, 5000);
+
+    return () => {
+      clearInterval(interval);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, []);
 
   const handleMarkDone = async (orderId) => {
@@ -87,6 +91,7 @@ const KitchenPage = () => {
       console.error('Failed to mark order as done:', error);
     }
   };
+
   const handleResetCounts = async () => {
     const password = prompt('Enter password to reset counts:');
 
@@ -193,12 +198,14 @@ const KitchenPage = () => {
                         📝 {item.note}
                       </div>
                     )}
-                    {item.id >= 1 && item.id <= 32 && item.drink && (
-                      <div className="ml-5 mt-1 text-base text-gray-700">
-                        🥤 Drink:{' '}
-                        <span className="font-semibold">{item.drink}</span>
-                      </div>
-                    )}
+                    {(item.name.toLowerCase().includes('kebab') ||
+                      item.name.toLowerCase().includes('kana')) &&
+                      item.drink && (
+                        <div className="ml-5 mt-1 text-base text-gray-700">
+                          🥤 Drink:{' '}
+                          <span className="font-semibold">{item.drink}</span>
+                        </div>
+                      )}
                   </li>
                 ))}
               </ul>
