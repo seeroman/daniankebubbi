@@ -85,9 +85,13 @@ const WaiterPage = () => {
       return;
     }
 
-    const filtered = sampleFoodItems.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
+const lowerSearch = searchTerm.toLowerCase();
+
+const filtered = sampleFoodItems.filter((item) =>
+  item.name.toLowerCase().includes(lowerSearch) ||
+  item.id.toString().includes(lowerSearch)
+);
+
     setSuggestions(filtered);
   }, [searchTerm]);
 
