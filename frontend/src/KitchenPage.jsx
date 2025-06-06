@@ -190,7 +190,7 @@ const KitchenPage = () => {
               <ul className="mb-6 space-y-5">
                 {order.items.map((item, index) => (
                   <li key={index}>
-                    <div className="text-xl font-semibold">
+                    <div className="text-lg font-semibold">
                       {index + 1}. {item.name}
                     </div>
                     {item.note && (
