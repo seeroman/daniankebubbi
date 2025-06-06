@@ -187,28 +187,36 @@ const KitchenPage = () => {
                 </div>
               )}
 
-              <ul className="mb-6 space-y-5">
-                {order.items.map((item, index) => (
-                  <li key={index}>
-                    <div className="text-lg font-semibold">
-                      {index + 1}. {item.name}
-                    </div>
-                    {item.note && (
-                      <div className="ml-5 mt-1 inline-block bg-yellow-300 text-yellow-900 text-base px-3 py-1 rounded text-sm font-medium">
-                        📝 {item.note}
-                      </div>
-                    )}
-                    {(item.name.toLowerCase().includes('kebab') ||
-                      item.name.toLowerCase().includes('kana')) &&
-                      item.drink && (
-                        <div className="ml-5 mt-1 text-base text-gray-700">
-                          🥤 Drink:{' '}
-                          <span className="font-semibold">{item.drink}</span>
-                        </div>
-                      )}
-                  </li>
-                ))}
-              </ul>
+<ul className="mb-6 space-y-3">
+  {order.items.map((item, index) => (
+    <li key={index} className="bg-gray-50 p-3 rounded-lg">
+      <div className="flex items-start">
+        <span className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+          {index + 1}
+        </span>
+        <div className="flex-1">
+          <div className="font-bold text-gray-800 text-lg">
+            {item.name}
+            {/kebab|kana/i.test(item.name) && item.drink && (
+              <span className="ml-2 text-sm font-normal text-gray-600">
+                🥤 {item.drink}
+              </span>
+            )}
+          </div>
+          
+          {item.note && (
+            <div className="mt-1 flex items-start">
+              <span className="text-yellow-600 mr-1">📝</span>
+              <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">
+                {item.note}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </li>
+  ))}
+</ul>
 
               <button
                 onClick={() => handleMarkDone(order.id)}
