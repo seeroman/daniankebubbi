@@ -180,7 +180,7 @@ try {
         <div className="mt-4 space-y-2">
           {suggestions.map((item) => (
             <div key={item.id} className="bg-white border p-3 rounded shadow">
-              <div className="font-semibold text-sm">`[{item.id}}] {item.name}`</div>
+              <div className="font-semibold text-sm">[{item.id}] {item.name}</div>
               <input
                 type="text"
                 placeholder="Add note..."
@@ -203,12 +203,13 @@ try {
                   ))}
                 </select>
               )}
-              <button
-                onClick={() => handleAddItem(item)}
-                className="mt-2 bg-blue-500 text-white w-full py-1 rounded text-sm"
-              >
-                ➕ Add
-              </button>
+<button
+  onClick={() => handleAddItem(item)}
+  className="mt-2 bg-blue-500 text-white w-full py-1 rounded text-sm"
+>
+  ➕ Add
+</button>
+
             </div>
           ))}
         </div>
