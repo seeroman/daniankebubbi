@@ -80,19 +80,18 @@ const WaiterPage = () => {
   const [orderId, setOrderId] = useState(1);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
-
   useEffect(() => {
     if (searchTerm.trim() === '') {
       setSuggestions([]);
       return;
     }
 
-const lowerSearch = searchTerm.toLowerCase();
+    const lowerSearch = searchTerm.toLowerCase();
 
-const filtered = sampleFoodItems.filter((item) =>
-  item.name.toLowerCase().includes(lowerSearch) ||
-  item.id.toString().includes(lowerSearch)
-);
+    const filtered = sampleFoodItems.filter((item) =>
+      item.name.toLowerCase().includes(lowerSearch) ||
+      item.id.toString().includes(lowerSearch)
+    );
 
     setSuggestions(filtered);
   }, [searchTerm]);
@@ -120,28 +119,29 @@ const filtered = sampleFoodItems.filter((item) =>
       return;
     }
 
-try {
-  const response = await axios.post(`${API_BASE_URL}/api/orders`, {
-    waiter: waiterName,
-    customer: customerName,
-    items: orderItems,
-    status: 'NEW',
-    paymentStatus: paymentStatus,
-  });
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/orders`, {
+        waiter: waiterName,
+        customer: customerName,
+        items: orderItems,
+        status: 'NEW',
+        paymentStatus: paymentStatus,
+      });
 
-  setToast({ show: true, message: `✅ Order #${orderId} sent to kitchen!`, type: 'success' });
+      setToast({ show: true, message: `✅ Order #${orderId} sent to kitchen!`, type: 'success' });
 
-  setOrderItems([]);
-  setCustomerName('');
-  setPaymentStatus('UNPAID');
-  setOrderId((prev) => prev + 1);
+      setOrderItems([]);
+      setCustomerName('');
+      setPaymentStatus('UNPAID');
+      setOrderId((prev) => prev + 1);
 
-  setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
-} catch (error) {
-  setToast({ show: true, message: '❌ Failed to send order. Try again.', type: 'error' });
+      setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
+    } catch (error) {
+      setToast({ show: true, message: '❌ Failed to send order. Try again.', type: 'error' });
 
-  setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
-}
+      setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
+    }
+  };
 
   return (
     <div className="p-4 max-w-md mx-auto bg-gray-100 min-h-screen">
@@ -203,13 +203,12 @@ try {
                   ))}
                 </select>
               )}
-<button
-  onClick={() => handleAddItem(item)}
-  className="mt-2 bg-blue-500 text-white w-full py-1 rounded text-sm"
->
-  ➕ Add
-</button>
-
+              <button
+                onClick={() => handleAddItem(item)}
+                className="mt-2 bg-blue-500 text-white w-full py-1 rounded text-sm"
+              >
+                ➕ Add
+              </button>
             </div>
           ))}
         </div>
@@ -217,62 +216,47 @@ try {
 
       {orderItems.length > 0 && (
         <div className="mt-6">
-          <h2 className="text-lg font-bold mb-2">
-            🧾 Order Summary
-          </h2>
-          <ul className="mb-4 text-sm list-decimal list-inside">
-            {orderItems.map((item, i) => (
-              <li key={i} className="mb-1">
-                {item.name} — note: {item.note || '(none)'}
-                {item.drink ? `, drink: ${item.drink}` : ''}
+          <h2 className="text-lg font-semibold mb-2">🛒 Order Preview</h2>
+          <ul className="space-y-2">
+            {orderItems.map((item, index) => (
+              <li key={index} className="p-2 border rounded bg-white shadow-sm text-sm">
+                <div><strong>{item.name}</strong></div>
+                {item.note && <div className="text-gray-600">📝 {item.note}</div>}
+                {item.drink && <div className="text-gray-600">🥤 {item.drink}</div>}
               </li>
             ))}
           </ul>
 
-          <div className="mb-4">
-            <div className="font-medium mb-1">💰 Payment Status:</div>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  value="UNPAID"
-                  checked={paymentStatus === 'UNPAID'}
-                  onChange={(e) => setPaymentStatus(e.target.value)}
-                  className="accent-red-500"
-                />
-                Unpaid
-              </label>
-              <label className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  value="PAID"
-                  checked={paymentStatus === 'PAID'}
-                  onChange={(e) => setPaymentStatus(e.target.value)}
-                  className="accent-green-600"
-                />
-                Paid
-              </label>
-            </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1">💰 Payment Status</label>
+            <select
+              value={paymentStatus}
+              onChange={(e) => setPaymentStatus(e.target.value)}
+              className="w-full px-3 py-2 border rounded"
+            >
+              <option value="PAID">PAID</option>
+              <option value="UNPAID">UNPAID</option>
+            </select>
           </div>
 
           <button
             onClick={handleSendToKitchen}
-            className="bg-green-600 text-white w-full py-2 rounded text-base mt-2"
+            className="mt-4 w-full bg-green-600 text-white py-2 rounded font-medium"
           >
-            ✅ Send to Kitchen
+            🚀 Send to Kitchen
           </button>
         </div>
       )}
-      {toast.show && (
-  <div
-    className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg text-white text-sm sm:text-base z-50 transition-opacity duration-300 ${
-      toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-    }`}
-  >
-    {toast.message}
-  </div>
-)}
 
+      {toast.show && (
+        <div
+          className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-md text-white ${
+            toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 };
