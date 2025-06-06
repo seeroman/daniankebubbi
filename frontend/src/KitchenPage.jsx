@@ -193,10 +193,12 @@ const KitchenPage = () => {
                         📝 {item.note}
                       </div>
                     )}
-                    <div className="ml-5 mt-1 text-base text-gray-700">
-                      🥤 Drink:{' '}
-                      <span className="font-semibold">{item.drink}</span>
-                    </div>
+                    {item.id >= 1 && item.id <= 32 && item.drink && (
+                      <div className="ml-5 mt-1 text-base text-gray-700">
+                        🥤 Drink:{' '}
+                        <span className="font-semibold">{item.drink}</span>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
