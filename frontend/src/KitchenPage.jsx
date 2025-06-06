@@ -187,36 +187,50 @@ const KitchenPage = () => {
                 </div>
               )}
 
-<ul className="mb-6 space-y-3">
-  {order.items.map((item, index) => (
-    <li key={index} className="bg-gray-50 p-3 rounded-lg">
-      <div className="flex items-start">
-        <span className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-          {index + 1}
-        </span>
-        <div className="flex-1">
-          <div className="font-bold text-gray-800 text-lg">
-            {item.name}
-            {/kebab|kana/i.test(item.name) && item.drink && (
-              <span className="ml-2 text-sm font-normal text-gray-600">
-                🥤 {item.drink}
-              </span>
-            )}
-          </div>
-          
-          {item.note && (
-            <div className="mt-1 flex items-start">
-              <span className="text-yellow-600 mr-1">📝</span>
-              <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">
-                {item.note}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-    </li>
-  ))}
-</ul>
+              <ul className="mb-6 space-y-2">
+                {order.items.map((item, index) => (
+                  <li
+                    key={index}
+                    className="bg-white p-3 rounded-lg shadow-sm border border-gray-100"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-sm">
+                        {index + 1}
+                      </span>
+                      <div className="flex-1">
+                        {/* ITEM NAME */}
+                        <div className="font-bold text-gray-800 text-lg">
+                          {item.name}
+                        </div>
+
+                        {/* NOTE (appears immediately after item name) */}
+                        {item.note && (
+                          <div className="mt-1 flex items-center">
+                            <span className="text-yellow-600 mr-1 text-sm">
+                              📝
+                            </span>
+                            <span className="bg-yellow-50 text-yellow-800 px-2 py-1 rounded text-sm border border-yellow-200">
+                              {item.note}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* DRINK (only for kebab/kana items, appears after note) */}
+                        {/kebab|kana/i.test(item.name) && item.drink && (
+                          <div className="mt-1 flex items-center">
+                            <span className="text-blue-500 mr-1 text-sm">
+                              🥤
+                            </span>
+                            <span className="text-gray-600 text-sm">
+                              {item.drink}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
 
               <button
                 onClick={() => handleMarkDone(order.id)}
