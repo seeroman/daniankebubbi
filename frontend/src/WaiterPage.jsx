@@ -78,6 +78,8 @@ const WaiterPage = () => {
   const [selectedDrink, setSelectedDrink] = useState(drinkOptions[0]);
   const [paymentStatus, setPaymentStatus] = useState('UNPAID');
   const [orderId, setOrderId] = useState(1);
+  const [toast, setToast] = useState({ show: false, message: '', type: '' });
+
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -118,26 +120,28 @@ const filtered = sampleFoodItems.filter((item) =>
       return;
     }
 
-    try {
-      const response = await axios.post(`${API_BASE_URL}/api/orders`, {
-        waiter: waiterName,
-        customer: customerName,
-        items: orderItems,
-        status: 'NEW',
-        paymentStatus: paymentStatus,
-      });
-      console.log('data is passing', response);
+try {
+  const response = await axios.post(`${API_BASE_URL}/api/orders`, {
+    waiter: waiterName,
+    customer: customerName,
+    items: orderItems,
+    status: 'NEW',
+    paymentStatus: paymentStatus,
+  });
 
-      alert(`Order #${orderId} sent to kitchen!`);
-      setOrderItems([]);
-      setCustomerName('');
-      setPaymentStatus('UNPAID');
-      setOrderId((prev) => prev + 1);
-    } catch (error) {
-      console.error('Failed to send order:', error);
-      alert('Failed to send order. Try again.');
-    }
-  };
+  setToast({ show: true, message: `✅ Order #${orderId} sent to kitchen!`, type: 'success' });
+
+  setOrderItems([]);
+  setCustomerName('');
+  setPaymentStatus('UNPAID');
+  setOrderId((prev) => prev + 1);
+
+  setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
+} catch (error) {
+  setToast({ show: true, message: '❌ Failed to send order. Try again.', type: 'error' });
+
+  setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
+}
 
   return (
     <div className="p-4 max-w-md mx-auto bg-gray-100 min-h-screen">
@@ -176,7 +180,7 @@ const filtered = sampleFoodItems.filter((item) =>
         <div className="mt-4 space-y-2">
           {suggestions.map((item) => (
             <div key={item.id} className="bg-white border p-3 rounded shadow">
-              <div className="font-semibold text-sm">{item.id} {item.name}</div>
+              <div className="font-semibold text-sm">`[{item.id}}] {item.name}`</div>
               <input
                 type="text"
                 placeholder="Add note..."
@@ -213,7 +217,7 @@ const filtered = sampleFoodItems.filter((item) =>
       {orderItems.length > 0 && (
         <div className="mt-6">
           <h2 className="text-lg font-bold mb-2">
-            🧾 Order #{orderId} Summary
+            🧾 Order Summary
           </h2>
           <ul className="mb-4 text-sm list-decimal list-inside">
             {orderItems.map((item, i) => (
@@ -258,6 +262,16 @@ const filtered = sampleFoodItems.filter((item) =>
           </button>
         </div>
       )}
+      {toast.show && (
+  <div
+    className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg text-white text-sm sm:text-base z-50 transition-opacity duration-300 ${
+      toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+    }`}
+  >
+    {toast.message}
+  </div>
+)}
+
     </div>
   );
 };
