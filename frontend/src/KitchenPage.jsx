@@ -109,8 +109,8 @@ const KitchenPage = () => {
       });
       fetchOrders();
       fetchCompletedStats();
-      fetchCompletedOrdersToday(); // Refresh completed orders list
-      fetchCompletedOrdersAll(); // Refresh completed orders list
+      fetchCompletedOrdersToday();
+      fetchCompletedOrdersAll();
     } catch (error) {
       console.error('Failed to mark order as done:', error);
     }
@@ -131,7 +131,7 @@ const KitchenPage = () => {
 
       const data = await res.json();
       alert(data.message || '✅ Reset successful.');
-      fetchCompletedStats(); // refresh the counters
+      fetchCompletedStats();
       setCompletedOrdersTodayList([]);
       setCompletedOrdersAllList([]);
       setShowCompletedToday(false);
@@ -158,16 +158,7 @@ const KitchenPage = () => {
     setShowCompletedToday(false);
   };
 
-  if (loading) {
-    return (
-      <div className="p-4 text-center mt-40">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-70 mx-auto mb-4"></div>
-        <p className="text-lg text-gray-700 font-medium">Loading orders...</p>
-      </div>
-    );
-  }
-
-  const renderOrderList = (orders) => {
+  const renderOrderList = (orders, isPending = false) => {
     return (
       <div className="grid gap-7 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {orders.map((order) => (
@@ -243,11 +234,29 @@ const KitchenPage = () => {
                 </li>
               ))}
             </ul>
+
+            {isPending && (
+              <button
+                onClick={() => handleMarkDone(order.id)}
+                className="w-full bg-blue-600 text-white py-2 text-lg rounded-md hover:bg-blue-700"
+              >
+                ✅ Mark as Done
+              </button>
+            )}
           </div>
         ))}
       </div>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="p-4 text-center mt-40">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-70 mx-auto mb-4"></div>
+        <p className="text-lg text-gray-700 font-medium">Loading orders...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 bg-gray-100 min-h-screen">
@@ -308,7 +317,7 @@ const KitchenPage = () => {
       ) : orders.length === 0 ? (
         <p className="text-center text-gray-600">No active orders.</p>
       ) : (
-        renderOrderList(orders)
+        renderOrderList(orders, true)
       )}
     </div>
   );
