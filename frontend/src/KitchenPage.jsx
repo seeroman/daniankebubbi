@@ -10,6 +10,8 @@ const KitchenPage = () => {
   const [orders, setOrders] = useState([]);
   const [completedToday, setCompletedToday] = useState(0);
   const [completedTotal, setCompletedTotal] = useState(0);
+  const [avgTimeToday, setAvgTimeToday] = useState(0);
+  const [avgTimeTotal, setAvgTimeTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showCompletedToday, setShowCompletedToday] = useState(false);
   const [showCompletedAll, setShowCompletedAll] = useState(false);
@@ -19,6 +21,7 @@ const KitchenPage = () => {
     localStorage.getItem('kitchenPermissionsGranted') === 'true'
   );
   const [newOrderAlert, setNewOrderAlert] = useState(false);
+  const [markingDone, setMarkingDone] = useState({});
   const audioRef = useRef(null);
   const prevOrderIds = useRef([]);
 
@@ -43,7 +46,6 @@ const KitchenPage = () => {
       setPermissionsGranted(true);
     } catch (error) {
       console.warn('Permission initialization failed:', error);
-      // Proceed anyway but with limited functionality
       setPermissionsGranted(true);
     }
   };
@@ -62,8 +64,11 @@ const KitchenPage = () => {
       ]);
       const todayData = await todayRes.json();
       const totalData = await totalRes.json();
+      
       setCompletedToday(todayData.completed_orders_today);
       setCompletedTotal(totalData.completed_orders_total);
+      setAvgTimeToday(todayData.avg_completion_time_minutes);
+      setAvgTimeTotal(totalData.avg_completion_time_minutes);
     } catch (error) {
       console.error('Failed to fetch completed order stats:', error);
     }
@@ -149,16 +154,27 @@ const KitchenPage = () => {
   }, [permissionsGranted]);
 
   const handleMarkDone = async (orderId) => {
+    setMarkingDone(prev => ({ ...prev, [orderId]: true }));
     try {
-      await fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
         method: 'PATCH',
       });
-      fetchOrders();
-      fetchCompletedStats();
-      fetchCompletedOrdersToday();
-      fetchCompletedOrdersAll();
+      const result = await response.json();
+      
+      if (response.ok) {
+        fetchOrders();
+        fetchCompletedStats();
+        fetchCompletedOrdersToday();
+        fetchCompletedOrdersAll();
+        
+        // Show completion alert
+        alert(`Order #${orderId} completed in ${result.time_taken_minutes} minutes`);
+      }
     } catch (error) {
       console.error('Failed to mark order as done:', error);
+      alert('Failed to complete order. Please try again.');
+    } finally {
+      setMarkingDone(prev => ({ ...prev, [orderId]: false }));
     }
   };
 
@@ -210,10 +226,10 @@ const KitchenPage = () => {
         {orders.map((order) => (
           <div
             key={order.id}
-            className="bg-white shadow-xl rounded-xl p-5 border border-gray-300"
+            className="bg-white shadow-xl rounded-xl p-5 border border-gray-300 relative"
           >
             <div className="flex justify-between text-sm font-bold mb-2 text-gray-800">
-              <span>🧾 Order #{order.id}</span>
+              <span>🧾 Order #{order.custom_order_id || order.id}</span>
               <span>⏰ {order.time || '–'}</span>
             </div>
 
@@ -281,12 +297,42 @@ const KitchenPage = () => {
               ))}
             </ul>
 
+            {!isPending && order.completion_time && (
+              <div className="mt-2 text-xs text-gray-500 border-t pt-2">
+                <div className="flex items-center">
+                  <span className="mr-1">✅</span>
+                  <span>Completed at: {order.completion_time}</span>
+                </div>
+                {order.time_taken_minutes && (
+                  <div className="flex items-center">
+                    <span className="mr-1">⏱️</span>
+                    <span>Time taken: {order.time_taken_minutes} mins</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {isPending && (
               <button
                 onClick={() => handleMarkDone(order.id)}
-                className="w-full bg-blue-600 text-white py-2 text-lg rounded-md hover:bg-blue-700"
+                disabled={markingDone[order.id]}
+                className={`w-full py-2 text-lg rounded-md ${
+                  markingDone[order.id] 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
               >
-                ✅ Mark as Done
+                {markingDone[order.id] ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  '✅ Mark as Done'
+                )}
               </button>
             )}
           </div>
@@ -333,7 +379,7 @@ const KitchenPage = () => {
     <div className="p-4 bg-gray-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-center">👨‍🍳 Kitchen View</h1>
 
-      {/* New order alert (when sound couldn't play) */}
+      {/* New order alert */}
       {newOrderAlert && (
         <div className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded shadow-lg animate-pulse flex items-center">
           🔔 New Order! (Tab is muted)
@@ -346,11 +392,11 @@ const KitchenPage = () => {
         </div>
       )}
 
-      {/* Completed Stats */}
+      {/* Stats Dashboard */}
       <div className="flex justify-end mb-4 gap-6 pr-4">
         <button 
           onClick={toggleCompletedToday}
-          className={`rounded-lg shadow px-4 py-2 text-center cursor-pointer ${
+          className={`rounded-lg shadow px-4 py-2 text-center cursor-pointer min-w-[120px] ${
             showCompletedToday ? 'bg-green-200' : 'bg-white'
           }`}
         >
@@ -358,10 +404,13 @@ const KitchenPage = () => {
           <div className="text-xl font-bold text-green-600">
             {completedToday}
           </div>
+          <div className="text-xs text-gray-500 mt-1">
+            Avg: {avgTimeToday} mins
+          </div>
         </button>
         <button 
           onClick={toggleCompletedAll}
-          className={`rounded-lg shadow px-4 py-2 text-center cursor-pointer ${
+          className={`rounded-lg shadow px-4 py-2 text-center cursor-pointer min-w-[120px] ${
             showCompletedAll ? 'bg-blue-200' : 'bg-white'
           }`}
         >
@@ -369,8 +418,12 @@ const KitchenPage = () => {
           <div className="text-xl font-bold text-blue-600">
             {completedTotal}
           </div>
+          <div className="text-xs text-gray-500 mt-1">
+            Avg: {avgTimeTotal} mins
+          </div>
         </button>
       </div>
+      
       <div className="flex justify-end pr-4 mb-6">
         <button
           onClick={handleResetCounts}
@@ -380,9 +433,12 @@ const KitchenPage = () => {
         </button>
       </div>
 
+      {/* Main Content */}
       {showCompletedToday ? (
         <>
-          <h2 className="text-2xl font-bold mb-4 text-center text-green-600">Today's Completed Orders</h2>
+          <h2 className="text-2xl font-bold mb-4 text-center text-green-600">
+            Today's Completed Orders ({completedToday})
+          </h2>
           {completedOrdersTodayList.length === 0 ? (
             <p className="text-center text-gray-600">No completed orders today.</p>
           ) : (
@@ -391,7 +447,9 @@ const KitchenPage = () => {
         </>
       ) : showCompletedAll ? (
         <>
-          <h2 className="text-2xl font-bold mb-4 text-center text-blue-600">All Completed Orders</h2>
+          <h2 className="text-2xl font-bold mb-4 text-center text-blue-600">
+            All Completed Orders ({completedTotal})
+          </h2>
           {completedOrdersAllList.length === 0 ? (
             <p className="text-center text-gray-600">No completed orders.</p>
           ) : (
@@ -401,7 +459,12 @@ const KitchenPage = () => {
       ) : orders.length === 0 ? (
         <p className="text-center text-gray-600">No active orders.</p>
       ) : (
-        renderOrderList(orders, true)
+        <>
+          <h2 className="text-2xl font-bold mb-4 text-center text-orange-600">
+            Active Orders ({orders.length})
+          </h2>
+          {renderOrderList(orders, true)}
+        </>
       )}
     </div>
   );
