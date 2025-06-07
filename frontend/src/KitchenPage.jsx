@@ -15,8 +15,37 @@ const KitchenPage = () => {
   const [showCompletedAll, setShowCompletedAll] = useState(false);
   const [completedOrdersTodayList, setCompletedOrdersTodayList] = useState([]);
   const [completedOrdersAllList, setCompletedOrdersAllList] = useState([]);
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
+  const [newOrderAlert, setNewOrderAlert] = useState(false);
   const audioRef = useRef(null);
   const prevOrderIds = useRef([]);
+
+  const initializePermissions = async () => {
+    try {
+      // Initialize audio
+      audioRef.current = new Audio('/sound.wav');
+      await audioRef.current.play();
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      
+      // Request notification permissions
+      if (Notification.permission !== 'granted') {
+        await Notification.requestPermission();
+      }
+      
+      setPermissionsGranted(true);
+    } catch (error) {
+      console.warn('Permission initialization failed:', error);
+      // Proceed anyway but with limited functionality
+      setPermissionsGranted(true);
+    }
+  };
+
+  const showNotification = (title, body) => {
+    if (Notification.permission === 'granted') {
+      new Notification(title, { body });
+    }
+  };
 
   const fetchCompletedStats = async () => {
     try {
@@ -64,10 +93,21 @@ const KitchenPage = () => {
         (id) => !prevOrderIds.current.includes(id),
       );
 
-      if (prevOrderIds.current.length > 0 && isNewOrder && audioRef.current) {
-        audioRef.current.play().catch((e) => {
-          console.warn('Audio play failed:', e);
-        });
+      if (prevOrderIds.current.length > 0 && isNewOrder) {
+        const newOrderId = newOrderIds.find(id => !prevOrderIds.current.includes(id));
+        
+        try {
+          if (!document.hidden && audioRef.current) {
+            await audioRef.current.play();
+            setNewOrderAlert(false);
+          } else {
+            showNotification('New Order!', `Order #${newOrderId} received`);
+          }
+        } catch (error) {
+          console.warn('Audio play failed:', error);
+          showNotification('New Order!', `Order #${newOrderId} received`);
+          setNewOrderAlert(true);
+        }
       }
 
       prevOrderIds.current = newOrderIds;
@@ -80,27 +120,26 @@ const KitchenPage = () => {
   };
 
   useEffect(() => {
-    // Load audio on mount
-    audioRef.current = new Audio('/sound.wav');
-
-    // Initial fetch
-    fetchOrders();
-    fetchCompletedStats();
-
-    // Set up interval for auto-refresh
-    const interval = setInterval(() => {
+    if (permissionsGranted) {
+      // Initial fetch
       fetchOrders();
       fetchCompletedStats();
-    }, 5000);
 
-    return () => {
-      clearInterval(interval);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
+      // Set up interval for auto-refresh
+      const interval = setInterval(() => {
+        fetchOrders();
+        fetchCompletedStats();
+      }, 5000);
+
+      return () => {
+        clearInterval(interval);
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+      };
+    }
+  }, [permissionsGranted]);
 
   const handleMarkDone = async (orderId) => {
     try {
@@ -249,6 +288,25 @@ const KitchenPage = () => {
     );
   };
 
+  if (!permissionsGranted) {
+    return (
+      <div className="p-4 text-center mt-40">
+        <h1 className="text-3xl font-bold mb-6">👨‍🍳 Kitchen Notifications</h1>
+        <button 
+          onClick={initializePermissions}
+          className="bg-blue-600 text-white py-3 px-6 text-lg rounded-md hover:bg-blue-700 mb-4"
+        >
+          🔔 Enable Notifications
+        </button>
+        <p className="text-gray-600 max-w-md mx-auto">
+          Please enable audio and notification permissions to get alerts for new orders.
+          This is required for the system to notify you when new orders arrive,
+          especially when the browser is in the background.
+        </p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="p-4 text-center mt-40">
@@ -261,6 +319,19 @@ const KitchenPage = () => {
   return (
     <div className="p-4 bg-gray-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-center">👨‍🍳 Kitchen View</h1>
+
+      {/* New order alert (when sound couldn't play) */}
+      {newOrderAlert && (
+        <div className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded shadow-lg animate-pulse flex items-center">
+          🔔 New Order! (Tab is muted)
+          <button 
+            onClick={() => setNewOrderAlert(false)}
+            className="ml-2 text-white hover:text-gray-200"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Completed Stats */}
       <div className="flex justify-end mb-4 gap-6 pr-4">
