@@ -81,20 +81,23 @@ const WaiterPage = () => {
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [savedOrders, setSavedOrders] = useState([]);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', note: '', drink: '' });
 
+  // Load saved orders from localStorage on component mount
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setSuggestions([]);
-      return;
+    const loadedOrders = localStorage.getItem('savedOrders');
+    if (loadedOrders) {
+      setSavedOrders(JSON.parse(loadedOrders));
     }
+  }, []);
 
-    const lowerSearch = searchTerm.toLowerCase();
-    const filtered = sampleFoodItems.filter((item) =>
-      item.name.toLowerCase().includes(lowerSearch) ||
-      item.id.toString().includes(lowerSearch)
-    );
-    setSuggestions(filtered);
-  }, [searchTerm]);
+  // Save orders to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('savedOrders', JSON.stringify(savedOrders));
+  }, [savedOrders]);
+
+  // ... (keep your existing useEffect for search suggestions)
 
   const handleAddItem = (item) => {
     const note = notes[item.id] || '';
@@ -103,10 +106,11 @@ const WaiterPage = () => {
     setOrderItems((prev) => [
       ...prev,
       {
-        id: Date.now(), // Add unique ID for each item for editing
+        id: Date.now(), // Unique ID for each item
         name: item.name,
         note,
         drink,
+        originalItemId: item.id // Keep reference to original item
       },
     ]);
     setNotes((prev) => ({ ...prev, [item.id]: '' }));
@@ -116,6 +120,26 @@ const WaiterPage = () => {
 
   const handleRemoveItem = (id) => {
     setOrderItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleEditItem = (item) => {
+    setEditingItem(item);
+    setEditForm({
+      name: item.name,
+      note: item.note || '',
+      drink: item.drink || ''
+    });
+  };
+
+  const handleSaveEdit = () => {
+    setOrderItems(prev =>
+      prev.map(item =>
+        item.id === editingItem.id
+          ? { ...item, ...editForm }
+          : item
+      )
+    );
+    setEditingItem(null);
   };
 
   const handleHoldOrder = () => {
@@ -143,153 +167,33 @@ const WaiterPage = () => {
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
   };
 
-  const handleLoadSavedOrder = (order) => {
-    setOrderItems(order.items);
-    setCustomerName(order.customer);
-    setPaymentStatus(order.paymentStatus);
-    setWaiterName(order.waiter);
-    
-    setSavedOrders(prev => prev.filter(o => o.id !== order.id));
-  };
-
-  const handleSendToKitchen = async () => {
-    if (orderItems.length === 0) {
-      setToast({ show: true, message: '❌ No items in the order', type: 'error' });
-      setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
-      return;
-    }
-
-    setIsConfirming(true);
-  };
-
-  const confirmSendToKitchen = async () => {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/api/orders`, {
-        waiter: waiterName,
-        customer: customerName,
-        items: orderItems,
-        status: 'NEW',
-        paymentStatus: paymentStatus,
-      });
-
-      setToast({ show: true, message: `✅ Order #${orderId} sent to kitchen!`, type: 'success' });
-      setOrderItems([]);
-      setCustomerName('');
-      setPaymentStatus('UNPAID');
-      setOrderId(prev => prev + 1);
-      setIsConfirming(false);
-
-      setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
-    } catch (error) {
-      setToast({ show: true, message: '❌ Failed to send order. Try again.', type: 'error' });
-      setIsConfirming(false);
-      setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
-    }
-  };
-
-  const cancelSendToKitchen = () => {
-    setIsConfirming(false);
-  };
+  // ... (keep your existing handleLoadSavedOrder, handleSendToKitchen, confirmSendToKitchen functions)
 
   return (
     <div className="p-4 max-w-md mx-auto bg-gray-100 min-h-screen">
-      <h1 className="text-xl font-bold mb-4">🧾 Waiter Page</h1>
+      {/* ... (keep your existing header, toast, waiter selection, customer name input) */}
 
-      {/* Toast Notification */}
-      {toast.show && (
-        <div
-          className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-md text-white ${
-            toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
-
-      {/* Waiter Selection */}
-      <div className="mb-2 text-sm font-medium">👤 Select Waiter</div>
-      <select
-        value={waiterName}
-        onChange={(e) => setWaiterName(e.target.value)}
-        className="w-full mb-2 px-3 py-2 rounded border"
-      >
-        {waiterOptions.map((name, i) => (
-          <option key={i} value={name}>
-            {name}
-          </option>
-        ))}
-      </select>
-
-      {/* Customer Name */}
-      <input
-        type="text"
-        placeholder="Customer Name (optional)"
-        className="w-full mb-4 px-3 py-2 rounded border"
-        value={customerName}
-        onChange={(e) => setCustomerName(e.target.value)}
-      />
-
-      {/* Item Search */}
-      <input
-        type="text"
-        placeholder="🔍 Search item"
-        className="w-full px-3 py-2 rounded border"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
-
-      {/* Search Suggestions */}
-      {searchTerm.length > 0 && suggestions.length > 0 && (
-        <div className="mt-4 space-y-2">
-          {suggestions.map((item) => (
-            <div key={item.id} className="bg-white border p-3 rounded shadow">
-              <div className="font-semibold text-sm">[{item.id}] {item.name}</div>
-              <input
-                type="text"
-                placeholder="Add note..."
-                className="mt-1 w-full px-2 py-1 border rounded text-sm"
-                value={notes[item.id] || ''}
-                onChange={(e) =>
-                  setNotes((prev) => ({ ...prev, [item.id]: e.target.value }))
-                }
-              />
-              {item.type === 'main' && (
-                <select
-                  value={selectedDrink}
-                  onChange={(e) => setSelectedDrink(e.target.value)}
-                  className="mt-2 w-full px-2 py-1 border rounded text-sm"
-                >
-                  {drinkOptions.map((drink, i) => (
-                    <option key={i} value={drink}>
-                      {drink}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <button
-                onClick={() => handleAddItem(item)}
-                className="mt-2 bg-blue-500 text-white w-full py-1 rounded text-sm"
-              >
-                ➕ Add
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Current Order */}
+      {/* Current Order Items with Edit Buttons */}
       {orderItems.length > 0 && (
         <div className="mt-6">
           <h2 className="text-lg font-semibold mb-2">🛒 Current Order</h2>
           <ul className="space-y-2 mb-4">
             {orderItems.map((item) => (
               <li key={item.id} className="p-2 border rounded bg-white shadow-sm text-sm relative">
-                <button 
-                  onClick={() => handleRemoveItem(item.id)}
-                  className="absolute top-1 right-1 text-red-500 font-bold"
-                >
-                  ×
-                </button>
+                <div className="absolute top-1 right-1 flex space-x-1">
+                  <button 
+                    onClick={() => handleEditItem(item)}
+                    className="text-blue-500 font-bold"
+                  >
+                    ✏️
+                  </button>
+                  <button 
+                    onClick={() => handleRemoveItem(item.id)}
+                    className="text-red-500 font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
                 <div><strong>{item.name}</strong></div>
                 {item.note && <div className="text-gray-600">📝 {item.note}</div>}
                 {item.drink && <div className="text-gray-600">🥤 {item.drink}</div>}
@@ -297,87 +201,72 @@ const WaiterPage = () => {
             ))}
           </ul>
 
-          {/* Payment Status */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium mb-1">💰 Payment Status</label>
-            <select
-              value={paymentStatus}
-              onChange={(e) => setPaymentStatus(e.target.value)}
-              className="w-full px-3 py-2 border rounded"
-            >
-              <option value="PAID">PAID</option>
-              <option value="UNPAID">UNPAID</option>
-            </select>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex space-x-2 mt-4">
-            <button
-              onClick={handleHoldOrder}
-              className="flex-1 bg-yellow-500 text-white py-2 rounded font-medium"
-            >
-              💾 Hold Order
-            </button>
-            <button
-              onClick={handleSendToKitchen}
-              className="flex-1 bg-green-600 text-white py-2 rounded font-medium"
-            >
-              🚀 Send to Kitchen
-            </button>
-          </div>
+          {/* ... (rest of your component remains the same) */}
         </div>
       )}
 
-      {/* Saved Orders Section */}
-      {savedOrders.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-2">📦 Saved Orders</h2>
-          <div className="space-y-2">
-            {savedOrders.map((order) => (
-              <div key={order.id} className="p-3 border rounded bg-white shadow-sm">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-semibold">{order.customer}</div>
-                    <div className="text-sm text-gray-600">{order.timestamp}</div>
-                    <div className="text-sm">{order.items.length} items</div>
-                    <div className="text-sm">Status: {order.paymentStatus}</div>
-                  </div>
-                  <button
-                    onClick={() => handleLoadSavedOrder(order)}
-                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                  >
-                    Load
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation Modal */}
-      {isConfirming && (
+      {/* Edit Item Modal */}
+      {editingItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white p-6 rounded-lg max-w-sm w-full">
-            <h3 className="text-lg font-bold mb-4">Confirm Order</h3>
-            <p className="mb-4">Are you sure you want to send this order to the kitchen?</p>
+            <h3 className="text-lg font-bold mb-4">Edit Item</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">Item Name</label>
+              <input
+                type="text"
+                value={editForm.name}
+                onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                className="w-full px-3 py-2 border rounded"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">Note</label>
+              <input
+                type="text"
+                value={editForm.note}
+                onChange={(e) => setEditForm({...editForm, note: e.target.value})}
+                className="w-full px-3 py-2 border rounded"
+              />
+            </div>
+
+            {editingItem.drink !== null && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Drink</label>
+                <select
+                  value={editForm.drink}
+                  onChange={(e) => setEditForm({...editForm, drink: e.target.value})}
+                  className="w-full px-3 py-2 border rounded"
+                >
+                  {drinkOptions.map((drink, i) => (
+                    <option key={i} value={drink}>
+                      {drink}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="flex space-x-4">
               <button
-                onClick={cancelSendToKitchen}
+                onClick={() => setEditingItem(null)}
                 className="flex-1 bg-gray-300 text-gray-800 py-2 rounded"
               >
                 Cancel
               </button>
               <button
-                onClick={confirmSendToKitchen}
-                className="flex-1 bg-green-600 text-white py-2 rounded"
+                onClick={handleSaveEdit}
+                className="flex-1 bg-blue-500 text-white py-2 rounded"
               >
-                Confirm
+                Save
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ... (rest of your component remains the same) */}
     </div>
   );
 };
