@@ -68,59 +68,73 @@ const drinkOptions = [
 
 const waiterOptions = ['Roman', 'Rahad', 'Zaid', 'Hassan'];
 
-// Expanded note suggestions
 const noteSuggestions = [
+  // Spice levels
   { text: 'spicy', triggers: ['spi', 'hot'] },
   { text: 'mild spicy', triggers: ['mild', 'medium'] },
   { text: 'extra spicy', triggers: ['ext', 'very'] },
-  { text: 'no onion', triggers: ['no oni', 'onion'] },
-  { text: 'no tomato', triggers: ['no tom', 'tomato'] },
-  { text: 'no salad', triggers: ['no sal', 'salad'] },
-  { text: 'extra salad', triggers: ['ext sal', 'more sal'] },
-  { text: 'extra sauce', triggers: ['ext sau', 'more sau'] },
-  { text: 'less sauce', triggers: ['les sau', 'little sau'] },
-  { text: 'no garlic', triggers: ['no gar', 'garlic'] },
-  { text: 'no cheese', triggers: ['no che', 'cheese'] },
-  { text: 'extra cheese', triggers: ['ext che', 'more che'] },
-  { text: 'well done', triggers: ['wel', 'crispy'] },
-  { text: 'less salt', triggers: ['les sal', 'salt'] },
-  { text: 'no salt', triggers: ['no sal', 'salt'] },
-  { text: 'gluten free', triggers: ['glu', 'free'] },
-  { text: 'vegan', triggers: ['veg', 'plant'] },
-  { text: 'halal', triggers: ['hal', 'islam'] },
-  { text: 'kosher', triggers: ['kos', 'jew'] },
-  { text: 'no mayo', triggers: ['no may', 'mayo'] },
-  { text: 'extra mayo', triggers: ['ext may', 'more may'] },
-  { text: 'no ketchup', triggers: ['no ket', 'ketchup'] },
-  { text: 'extra ketchup', triggers: ['ext ket', 'more ket'] },
-  { text: 'no mustard', triggers: ['no mus', 'mustard'] },
-  { text: 'extra mustard', triggers: ['ext mus', 'more mus'] },
-  { text: 'no chili', triggers: ['no chi', 'chili'] },
-  { text: 'extra chili', triggers: ['ext chi', 'more chi'] },
-  { text: 'no pepper', triggers: ['no pep', 'pepper'] },
-  { text: 'extra pepper', triggers: ['ext pep', 'more pep'] },
-  { text: 'no cucumber', triggers: ['no cuc', 'cucumber'] },
-  { text: 'extra cucumber', triggers: ['ext cuc', 'more cuc'] },
-  { text: 'no olives', triggers: ['no oli', 'olives'] },
-  { text: 'extra olives', triggers: ['ext oli', 'more oli'] },
-  { text: 'no pickle', triggers: ['no pic', 'pickle'] },
-  { text: 'extra pickle', triggers: ['ext pic', 'more pic'] },
-  { text: 'no lettuce', triggers: ['no let', 'lettuce'] },
-  { text: 'extra lettuce', triggers: ['ext let', 'more let'] },
-  { text: 'no fries', triggers: ['no fri', 'fries'] },
-  { text: 'extra fries', triggers: ['ext fri', 'more fri'] },
-  { text: 'no bread', triggers: ['no bre', 'bread'] },
-  { text: 'extra bread', triggers: ['ext bre', 'more bre'] },
-  { text: 'cut in half', triggers: ['cut', 'half'] },
-  { text: 'on the side', triggers: ['side', 'separate'] },
-  { text: 'wrapped separately', triggers: ['wrap', 'separate'] },
+
+  // Common ingredients with both "no" and "extra" variations
+  { text: 'no onion', triggers: ['no oni', 'onion', 'without onion'] },
+  { text: 'extra onion', triggers: ['ext oni', 'more onion', 'add onion'] },
+  { text: 'no tomato', triggers: ['no tom', 'tomato', 'without tomato'] },
+  { text: 'extra tomato', triggers: ['ext tom', 'more tomato', 'add tomato'] },
+  { text: 'no salad', triggers: ['no sal', 'salad', 'without salad'] },
+  { text: 'extra salad', triggers: ['ext sal', 'more salad', 'add salad'] },
+  { text: 'no garlic', triggers: ['no gar', 'garlic', 'without garlic'] },
+  { text: 'extra garlic', triggers: ['ext gar', 'more garlic', 'add garlic'] },
+  { text: 'no cheese', triggers: ['no che', 'cheese', 'without cheese'] },
+  { text: 'extra cheese', triggers: ['ext che', 'more cheese', 'add cheese'] },
+  { text: 'no cucumber', triggers: ['no cuc', 'cucumber', 'without cucumber'] },
+  {
+    text: 'extra cucumber',
+    triggers: ['ext cuc', 'more cucumber', 'add cucumber'],
+  },
+  { text: 'no olives', triggers: ['no oli', 'olives', 'without olives'] },
+  { text: 'extra olives', triggers: ['ext oli', 'more olives', 'add olives'] },
+  { text: 'no pickle', triggers: ['no pic', 'pickle', 'without pickle'] },
+  { text: 'extra pickle', triggers: ['ext pic', 'more pickle', 'add pickle'] },
+  { text: 'no lettuce', triggers: ['no let', 'lettuce', 'without lettuce'] },
+  {
+    text: 'extra lettuce',
+    triggers: ['ext let', 'more lettuce', 'add lettuce'],
+  },
+
+  // Sauces and condiments
+  { text: 'no sauce', triggers: ['no sau', 'sauce', 'without sauce'] },
+  { text: 'extra sauce', triggers: ['ext sau', 'more sauce', 'add sauce'] },
+  { text: 'less sauce', triggers: ['les sau', 'little sauce'] },
+  { text: 'no mayo', triggers: ['no may', 'mayo', 'without mayo'] },
+  { text: 'extra mayo', triggers: ['ext may', 'more mayo', 'add mayo'] },
+  { text: 'no ketchup', triggers: ['no ket', 'ketchup', 'without ketchup'] },
+  {
+    text: 'extra ketchup',
+    triggers: ['ext ket', 'more ketchup', 'add ketchup'],
+  },
+  { text: 'no mustard', triggers: ['no mus', 'mustard', 'without mustard'] },
+  {
+    text: 'extra mustard',
+    triggers: ['ext mus', 'more mustard', 'add mustard'],
+  },
+  { text: 'no chili', triggers: ['no chi', 'chili', 'without chili'] },
+  { text: 'extra chili', triggers: ['ext chi', 'more chili', 'add chili'] },
+
+  // Preparation styles
+
+  { text: 'cut in half', triggers: ['cut', 'half', 'split'] },
+  { text: 'Sauce Separately', triggers: ['sepa', 'separately', 'sauce'] },
+
+  // Other common requests
+  { text: 'no salt', triggers: ['no sal', 'salt', 'without salt'] },
+  { text: 'less salt', triggers: ['les sal', 'little salt'] },
+  { text: 'no pepper', triggers: ['no pep', 'pepper', 'without pepper'] },
+  { text: 'extra pepper', triggers: ['ext pep', 'more pepper', 'add pepper'] },
+  { text: 'no fries', triggers: ['no fri', 'fries', 'without fries'] },
+  { text: 'extra fries', triggers: ['ext fri', 'more fries', 'add fries'] },
+  { text: 'no bread', triggers: ['no bre', 'bread', 'without bread'] },
+  { text: 'extra bread', triggers: ['ext bre', 'more bread', 'add bread'] },
   { text: 'no utensils', triggers: ['no uten', 'utensils'] },
   { text: 'extra napkins', triggers: ['ext nap', 'napkins'] },
-  { text: 'allergen free', triggers: ['aller', 'free'] },
-  { text: 'dairy free', triggers: ['dairy', 'free'] },
-  { text: 'nut free', triggers: ['nut', 'free'] },
-  { text: 'soy free', triggers: ['soy', 'free'] },
-  { text: 'egg free', triggers: ['egg', 'free'] },
 ];
 
 const NoteInputWithSuggestions = ({ value, onChange, itemId }) => {
@@ -131,25 +145,23 @@ const NoteInputWithSuggestions = ({ value, onChange, itemId }) => {
     const input = e.target.value;
     onChange(e);
 
-    if (input.includes(',')) {
-      const lastPart = input.split(',').pop().trim();
-      if (lastPart.length > 1) {
-        const matched = noteSuggestions.filter(suggestion => 
-          suggestion.triggers.some(trigger => 
-            lastPart.toLowerCase().includes(trigger.toLowerCase())
-          )
+    // Split by commas to handle multiple notes
+    const parts = input.split(',');
+    const lastPart = parts[parts.length - 1].trim().toLowerCase();
+
+    if (lastPart.length > 1) {
+      const matched = noteSuggestions.filter((suggestion) => {
+        // Check if any trigger matches
+        const hasTriggerMatch = suggestion.triggers.some((trigger) =>
+          lastPart.includes(trigger.toLowerCase()),
         );
-        setActiveSuggestions(matched);
-        setShowSuggestions(matched.length > 0);
-      } else {
-        setShowSuggestions(false);
-      }
-    } else if (input.length > 1) {
-      const matched = noteSuggestions.filter(suggestion => 
-        suggestion.triggers.some(trigger => 
-          input.toLowerCase().includes(trigger.toLowerCase())
-        )
-      );
+
+        // Also check if the suggestion text itself matches
+        const hasTextMatch = suggestion.text.toLowerCase().includes(lastPart);
+
+        return hasTriggerMatch || hasTextMatch;
+      });
+
       setActiveSuggestions(matched);
       setShowSuggestions(matched.length > 0);
     } else {
@@ -220,7 +232,7 @@ const WaiterPage = () => {
     if (loadedOrders) {
       setSavedOrders(JSON.parse(loadedOrders));
     }
-    
+
     const lastOrderId = localStorage.getItem('lastOrderId');
     if (lastOrderId) {
       setOrderId(parseInt(lastOrderId) + 1);
@@ -244,9 +256,10 @@ const WaiterPage = () => {
     }
 
     const lowerSearch = searchTerm.toLowerCase();
-    const filtered = sampleFoodItems.filter((item) =>
-      item.name.toLowerCase().includes(lowerSearch) ||
-      item.id.toString().includes(lowerSearch)
+    const filtered = sampleFoodItems.filter(
+      (item) =>
+        item.name.toLowerCase().includes(lowerSearch) ||
+        item.id.toString().includes(lowerSearch),
     );
 
     setSuggestions(filtered);
@@ -263,7 +276,7 @@ const WaiterPage = () => {
         name: item.name,
         note,
         drink,
-        originalItemId: item.id // Keep reference to original item
+        originalItemId: item.id, // Keep reference to original item
       },
     ]);
     setNotes((prev) => ({ ...prev, [item.id]: '' }));
@@ -272,7 +285,7 @@ const WaiterPage = () => {
   };
 
   const handleRemoveItem = (id) => {
-    setOrderItems(prev => prev.filter(item => item.id !== id));
+    setOrderItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleEditItem = (item) => {
@@ -280,17 +293,15 @@ const WaiterPage = () => {
     setEditForm({
       name: item.name,
       note: item.note || '',
-      drink: item.drink || ''
+      drink: item.drink || '',
     });
   };
 
   const handleSaveEdit = () => {
-    setOrderItems(prev =>
-      prev.map(item =>
-        item.id === editingItem.id
-          ? { ...item, ...editForm }
-          : item
-      )
+    setOrderItems((prev) =>
+      prev.map((item) =>
+        item.id === editingItem.id ? { ...item, ...editForm } : item,
+      ),
     );
     setEditingItem(null);
   };
@@ -311,12 +322,16 @@ const WaiterPage = () => {
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setSavedOrders(prev => [newSavedOrder, ...prev]);
+    setSavedOrders((prev) => [newSavedOrder, ...prev]);
     setOrderItems([]);
     setCustomerName('');
     setPaymentStatus('UNPAID');
 
-    setToast({ show: true, message: '✅ Order saved for later', type: 'success' });
+    setToast({
+      show: true,
+      message: '✅ Order saved for later',
+      type: 'success',
+    });
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
   };
 
@@ -325,19 +340,23 @@ const WaiterPage = () => {
     setCustomerName(order.customer);
     setPaymentStatus(order.paymentStatus);
     setWaiterName(order.waiter);
-    
-    setSavedOrders(prev => prev.filter(o => o.id !== order.id));
+
+    setSavedOrders((prev) => prev.filter((o) => o.id !== order.id));
   };
 
   const handleDeleteSavedOrder = (orderId) => {
-    setSavedOrders(prev => prev.filter(o => o.id !== orderId));
+    setSavedOrders((prev) => prev.filter((o) => o.id !== orderId));
     setToast({ show: true, message: '🗑️ Order deleted', type: 'success' });
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
   };
 
   const handleSendToKitchen = async () => {
     if (orderItems.length === 0) {
-      setToast({ show: true, message: '❌ No items in the order', type: 'error' });
+      setToast({
+        show: true,
+        message: '❌ No items in the order',
+        type: 'error',
+      });
       setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
       return;
     }
@@ -355,16 +374,24 @@ const WaiterPage = () => {
         paymentStatus: paymentStatus,
       });
 
-      setToast({ show: true, message: `✅ Order #${orderId} sent to kitchen!`, type: 'success' });
+      setToast({
+        show: true,
+        message: `✅ Order #${orderId} sent to kitchen!`,
+        type: 'success',
+      });
       setOrderItems([]);
       setCustomerName('');
       setPaymentStatus('UNPAID');
-      setOrderId(prev => prev + 1);
+      setOrderId((prev) => prev + 1);
       setIsConfirming(false);
 
       setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
     } catch (error) {
-      setToast({ show: true, message: '❌ Failed to send order. Try again.', type: 'error' });
+      setToast({
+        show: true,
+        message: '❌ Failed to send order. Try again.',
+        type: 'error',
+      });
       setIsConfirming(false);
       setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
     }
@@ -426,10 +453,14 @@ const WaiterPage = () => {
         <div className="mt-4 space-y-2">
           {suggestions.map((item) => (
             <div key={item.id} className="bg-white border p-3 rounded shadow">
-              <div className="font-semibold text-sm">[{item.id}] {item.name}</div>
+              <div className="font-semibold text-sm">
+                [{item.id}] {item.name}
+              </div>
               <NoteInputWithSuggestions
                 value={notes[item.id] || ''}
-                onChange={(e) => setNotes((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                onChange={(e) =>
+                  setNotes((prev) => ({ ...prev, [item.id]: e.target.value }))
+                }
                 itemId={item.id}
               />
               {item.type === 'main' && (
@@ -462,31 +493,42 @@ const WaiterPage = () => {
           <h2 className="text-lg font-semibold mb-2">🛒 Current Order</h2>
           <ul className="space-y-2 mb-4">
             {orderItems.map((item) => (
-              <li key={item.id} className="p-2 border rounded bg-white shadow-sm text-sm relative">
+              <li
+                key={item.id}
+                className="p-2 border rounded bg-white shadow-sm text-sm relative"
+              >
                 <div className="absolute top-1 right-1 flex space-x-3">
-                  <button 
+                  <button
                     onClick={() => handleEditItem(item)}
                     className="text-blue-500 font-bold"
                   >
                     ✏️
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleRemoveItem(item.id)}
                     className="text-red-500 font-bold"
                   >
                     ×
                   </button>
                 </div>
-                <div><strong>{item.name}</strong></div>
-                {item.note && <div className="text-gray-600">📝 {item.note}</div>}
-                {item.drink && <div className="text-gray-600">🥤 {item.drink}</div>}
+                <div>
+                  <strong>{item.name}</strong>
+                </div>
+                {item.note && (
+                  <div className="text-gray-600">📝 {item.note}</div>
+                )}
+                {item.drink && (
+                  <div className="text-gray-600">🥤 {item.drink}</div>
+                )}
               </li>
             ))}
           </ul>
 
           {/* Payment Status */}
           <div className="mt-4">
-            <label className="block text-sm font-medium mb-1">💰 Payment Status</label>
+            <label className="block text-sm font-medium mb-1">
+              💰 Payment Status
+            </label>
             <select
               value={paymentStatus}
               onChange={(e) => setPaymentStatus(e.target.value)}
@@ -521,11 +563,16 @@ const WaiterPage = () => {
           <h2 className="text-lg font-semibold mb-2">📦 Saved Orders</h2>
           <div className="space-y-2">
             {savedOrders.map((order) => (
-              <div key={order.id} className="p-3 border rounded bg-white shadow-sm">
+              <div
+                key={order.id}
+                className="p-3 border rounded bg-white shadow-sm"
+              >
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="font-semibold">{order.customer}</div>
-                    <div className="text-sm text-gray-600">{order.timestamp}</div>
+                    <div className="text-sm text-gray-600">
+                      {order.timestamp}
+                    </div>
                     <div className="text-sm">{order.items.length} items</div>
                     <div className="text-sm">Status: {order.paymentStatus}</div>
                   </div>
@@ -555,13 +602,17 @@ const WaiterPage = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white p-6 rounded-lg max-w-sm w-full">
             <h3 className="text-lg font-bold mb-4">Edit Item</h3>
-            
+
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Item Name</label>
+              <label className="block text-sm font-medium mb-1">
+                Item Name
+              </label>
               <input
                 type="text"
                 value={editForm.name}
-                onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, name: e.target.value })
+                }
                 className="w-full px-3 py-2 border rounded"
               />
             </div>
@@ -570,7 +621,9 @@ const WaiterPage = () => {
               <label className="block text-sm font-medium mb-1">Note</label>
               <NoteInputWithSuggestions
                 value={editForm.note}
-                onChange={(e) => setEditForm({...editForm, note: e.target.value})}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, note: e.target.value })
+                }
                 itemId={editingItem.id}
               />
             </div>
@@ -580,7 +633,9 @@ const WaiterPage = () => {
                 <label className="block text-sm font-medium mb-1">Drink</label>
                 <select
                   value={editForm.drink}
-                  onChange={(e) => setEditForm({...editForm, drink: e.target.value})}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, drink: e.target.value })
+                  }
                   className="w-full px-3 py-2 border rounded"
                 >
                   {drinkOptions.map((drink, i) => (
@@ -615,7 +670,9 @@ const WaiterPage = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white p-6 rounded-lg max-w-sm w-full">
             <h3 className="text-lg font-bold mb-4">Confirm Order</h3>
-            <p className="mb-4">Are you sure you want to send this order to the kitchen?</p>
+            <p className="mb-4">
+              Are you sure you want to send this order to the kitchen?
+            </p>
             <div className="flex space-x-4">
               <button
                 onClick={cancelSendToKitchen}
