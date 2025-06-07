@@ -154,7 +154,7 @@ const KitchenPage = () => {
       {orders.length === 0 ? (
         <p className="text-center text-gray-600">No active orders.</p>
       ) : (
-        <div className="grid gap-7 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid gap-7 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {orders.map((order) => (
             <div
               key={order.id}
@@ -199,7 +199,7 @@ const KitchenPage = () => {
                       </span>
                       <div className="flex-1">
                         {/* ITEM NAME */}
-                        <div className="font-bold text-gray-800 text-lg">
+                        <div className="font-bold text-gray-800 text-base">
                           {item.name}
                         </div>
 
