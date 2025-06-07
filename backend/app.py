@@ -131,3 +131,54 @@ def reset_completed_orders():
     conn.commit()
     conn.close()
     return jsonify({'message': '✅ Completed orders reset successfully.'})
+
+
+@app.route('/api/orders/completed/today/list', methods=['GET'])
+def get_today_completed_orders_list():
+    LOCAL_TIMEZONE = pytz.timezone('Europe/Helsinki')
+    today = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE).strftime('%d-%m-%y')
+
+    conn = get_db_connection()
+    orders = conn.execute(
+        '''SELECT * FROM orders 
+        WHERE status = "DONE" AND time LIKE ?
+        ORDER BY time DESC''',
+        (f'{today}%',)
+    ).fetchall()
+    conn.close()
+
+    return jsonify([
+        {
+            'id': row['id'],
+            'custom_order_id': row['custom_order_id'],
+            'waiter': row['waiter'],
+            'customer': row['customer'],
+            'items': json.loads(row['items']),
+            'time': row['time'],
+            'paymentStatus': row['paymentStatus']
+        }
+        for row in orders
+    ])
+
+@app.route('/api/orders/completed/all', methods=['GET'])
+def get_all_completed_orders():
+    conn = get_db_connection()
+    orders = conn.execute(
+        '''SELECT * FROM orders 
+        WHERE status = "DONE"
+        ORDER BY time DESC'''
+    ).fetchall()
+    conn.close()
+
+    return jsonify([
+        {
+            'id': row['id'],
+            'custom_order_id': row['custom_order_id'],
+            'waiter': row['waiter'],
+            'customer': row['customer'],
+            'items': json.loads(row['items']),
+            'time': row['time'],
+            'paymentStatus': row['paymentStatus']
+        }
+        for row in orders
+    ])
