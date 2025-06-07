@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL || 'https://daniankebubbi.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://daniankebubbi.onrender.com';
 
 if (!API_BASE_URL) {
-  console.warn(
-    '⚠️ REACT_APP_API_BASE_URL is not defined. Check your .env file.',
-  );
+  console.warn('⚠️ REACT_APP_API_BASE_URL is not defined. Check your .env file.');
 }
 
 const KitchenPage = () => {
@@ -14,6 +11,10 @@ const KitchenPage = () => {
   const [completedToday, setCompletedToday] = useState(0);
   const [completedTotal, setCompletedTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showCompletedToday, setShowCompletedToday] = useState(false);
+  const [showCompletedAll, setShowCompletedAll] = useState(false);
+  const [completedOrdersTodayList, setCompletedOrdersTodayList] = useState([]);
+  const [completedOrdersAllList, setCompletedOrdersAllList] = useState([]);
   const audioRef = useRef(null);
   const prevOrderIds = useRef([]);
 
@@ -29,6 +30,26 @@ const KitchenPage = () => {
       setCompletedTotal(totalData.completed_orders_total);
     } catch (error) {
       console.error('Failed to fetch completed order stats:', error);
+    }
+  };
+
+  const fetchCompletedOrdersToday = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/orders/completed/today/list`);
+      const data = await response.json();
+      setCompletedOrdersTodayList(data);
+    } catch (error) {
+      console.error('Failed to fetch today\'s completed orders:', error);
+    }
+  };
+
+  const fetchCompletedOrdersAll = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/orders/completed/all`);
+      const data = await response.json();
+      setCompletedOrdersAllList(data);
+    } catch (error) {
+      console.error('Failed to fetch all completed orders:', error);
     }
   };
 
@@ -87,6 +108,9 @@ const KitchenPage = () => {
         method: 'PATCH',
       });
       fetchOrders();
+      fetchCompletedStats();
+      fetchCompletedOrdersToday(); // Refresh completed orders list
+      fetchCompletedOrdersAll(); // Refresh completed orders list
     } catch (error) {
       console.error('Failed to mark order as done:', error);
     }
@@ -108,10 +132,30 @@ const KitchenPage = () => {
       const data = await res.json();
       alert(data.message || '✅ Reset successful.');
       fetchCompletedStats(); // refresh the counters
+      setCompletedOrdersTodayList([]);
+      setCompletedOrdersAllList([]);
+      setShowCompletedToday(false);
+      setShowCompletedAll(false);
     } catch (error) {
       console.error('Reset failed:', error);
       alert('❌ Failed to reset counts.');
     }
+  };
+
+  const toggleCompletedToday = async () => {
+    if (!showCompletedToday) {
+      await fetchCompletedOrdersToday();
+    }
+    setShowCompletedToday(!showCompletedToday);
+    setShowCompletedAll(false);
+  };
+
+  const toggleCompletedAll = async () => {
+    if (!showCompletedAll) {
+      await fetchCompletedOrdersAll();
+    }
+    setShowCompletedAll(!showCompletedAll);
+    setShowCompletedToday(false);
   };
 
   if (loading) {
@@ -123,24 +167,116 @@ const KitchenPage = () => {
     );
   }
 
+  const renderOrderList = (orders) => {
+    return (
+      <div className="grid gap-7 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        {orders.map((order) => (
+          <div
+            key={order.id}
+            className="bg-white shadow-xl rounded-xl p-5 border border-gray-300"
+          >
+            <div className="flex justify-between text-sm font-bold mb-2 text-gray-800">
+              <span>🧾 Order #{order.id}</span>
+              <span>⏰ {order.time || '–'}</span>
+            </div>
+
+            <div className="mb-2 text-sm">
+              💰 Payment:{' '}
+              <span
+                className={`px-2 py-1 rounded text-xs font-semibold ${
+                  order.paymentStatus === 'PAID'
+                    ? 'bg-green-200 text-green-800'
+                    : 'bg-red-200 text-red-800'
+                }`}
+              >
+                {order.paymentStatus || 'UNKNOWN'}
+              </span>
+            </div>
+
+            <div className="text-sm mb-1">
+              👤 Waiter: <strong>{order.waiter}</strong>
+            </div>
+            {order.customer && (
+              <div className="text-sm mb-4">
+                🧍 Customer: <strong>{order.customer}</strong>
+              </div>
+            )}
+
+            <ul className="mb-6 space-y-2">
+              {order.items.map((item, index) => (
+                <li
+                  key={index}
+                  className="bg-white p-3 rounded-lg shadow-sm border border-gray-100"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-sm">
+                      {index + 1}
+                    </span>
+                    <div className="flex-1">
+                      <div className="font-bold text-gray-800 text-base">
+                        {item.name}
+                      </div>
+
+                      {item.note && (
+                        <div className="mt-1 flex items-center">
+                          <span className="text-yellow-600 mr-1 text-sm">
+                            📝
+                          </span>
+                          <span className="bg-yellow-50 text-yellow-800 px-2 py-1 rounded text-sm border border-yellow-200">
+                            {item.note}
+                          </span>
+                        </div>
+                      )}
+
+                      {/kebab|kana/i.test(item.name) && item.drink && (
+                        <div className="mt-1 flex items-center">
+                          <span className="text-blue-500 mr-1 text-sm">
+                            🥤
+                          </span>
+                          <span className="text-gray-600 text-sm">
+                            {item.drink}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="p-4 bg-gray-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-center">👨‍🍳 Kitchen View</h1>
 
       {/* Completed Stats */}
       <div className="flex justify-end mb-4 gap-6 pr-4">
-        <div className="bg-white rounded-lg shadow px-4 py-2 text-center">
+        <button 
+          onClick={toggleCompletedToday}
+          className={`rounded-lg shadow px-4 py-2 text-center cursor-pointer ${
+            showCompletedToday ? 'bg-green-200' : 'bg-white'
+          }`}
+        >
           <div className="text-sm text-gray-500">Completed Today</div>
           <div className="text-xl font-bold text-green-600">
             {completedToday}
           </div>
-        </div>
-        <div className="bg-white rounded-lg shadow px-4 py-2 text-center">
+        </button>
+        <button 
+          onClick={toggleCompletedAll}
+          className={`rounded-lg shadow px-4 py-2 text-center cursor-pointer ${
+            showCompletedAll ? 'bg-blue-200' : 'bg-white'
+          }`}
+        >
           <div className="text-sm text-gray-500">Total Completed</div>
           <div className="text-xl font-bold text-blue-600">
             {completedTotal}
           </div>
-        </div>
+        </button>
       </div>
       <div className="flex justify-end pr-4 mb-6">
         <button
@@ -151,96 +287,28 @@ const KitchenPage = () => {
         </button>
       </div>
 
-      {orders.length === 0 ? (
+      {showCompletedToday ? (
+        <>
+          <h2 className="text-2xl font-bold mb-4 text-center text-green-600">Today's Completed Orders</h2>
+          {completedOrdersTodayList.length === 0 ? (
+            <p className="text-center text-gray-600">No completed orders today.</p>
+          ) : (
+            renderOrderList(completedOrdersTodayList)
+          )}
+        </>
+      ) : showCompletedAll ? (
+        <>
+          <h2 className="text-2xl font-bold mb-4 text-center text-blue-600">All Completed Orders</h2>
+          {completedOrdersAllList.length === 0 ? (
+            <p className="text-center text-gray-600">No completed orders.</p>
+          ) : (
+            renderOrderList(completedOrdersAllList)
+          )}
+        </>
+      ) : orders.length === 0 ? (
         <p className="text-center text-gray-600">No active orders.</p>
       ) : (
-        <div className="grid gap-7 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              className="bg-white shadow-xl rounded-xl p-5 border border-gray-300"
-            >
-              <div className="flex justify-between text-sm font-bold mb-2 text-gray-800">
-                <span>🧾 Order #{order.id}</span>
-                <span>⏰ {order.time || '–'}</span>
-              </div>
-
-              <div className="mb-2 text-sm">
-                💰 Payment:{' '}
-                <span
-                  className={`px-2 py-1 rounded text-xs font-semibold ${
-                    order.paymentStatus === 'PAID'
-                      ? 'bg-green-200 text-green-800'
-                      : 'bg-red-200 text-red-800'
-                  }`}
-                >
-                  {order.paymentStatus || 'UNKNOWN'}
-                </span>
-              </div>
-
-              <div className="text-sm mb-1">
-                👤 Waiter: <strong>{order.waiter}</strong>
-              </div>
-              {order.customer && (
-                <div className="text-sm mb-4">
-                  🧍 Customer: <strong>{order.customer}</strong>
-                </div>
-              )}
-
-              <ul className="mb-6 space-y-2">
-                {order.items.map((item, index) => (
-                  <li
-                    key={index}
-                    className="bg-white p-3 rounded-lg shadow-sm border border-gray-100"
-                  >
-                    <div className="flex items-start gap-2">
-                      <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-sm">
-                        {index + 1}
-                      </span>
-                      <div className="flex-1">
-                        {/* ITEM NAME */}
-                        <div className="font-bold text-gray-800 text-base">
-                          {item.name}
-                        </div>
-
-                        {/* NOTE (appears immediately after item name) */}
-                        {item.note && (
-                          <div className="mt-1 flex items-center">
-                            <span className="text-yellow-600 mr-1 text-sm">
-                              📝
-                            </span>
-                            <span className="bg-yellow-50 text-yellow-800 px-2 py-1 rounded text-sm border border-yellow-200">
-                              {item.note}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* DRINK (only for kebab/kana items, appears after note) */}
-                        {/kebab|kana/i.test(item.name) && item.drink && (
-                          <div className="mt-1 flex items-center">
-                            <span className="text-blue-500 mr-1 text-sm">
-                              🥤
-                            </span>
-                            <span className="text-gray-600 text-sm">
-                              {item.drink}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => handleMarkDone(order.id)}
-                className="w-full bg-blue-600 text-white py-2 text-lg rounded-md hover:bg-blue-700"
-              >
-                ✅ Mark as Done
-              </button>
-            </div>
-          ))}
-        </div>
+        renderOrderList(orders)
       )}
     </div>
   );
