@@ -28,6 +28,15 @@ def fix_custom_order_id():
     conn.close()
     return "✅ custom_order_id column added!"
 
+@app.route('/debug/clear-all-orders', methods=['POST'])
+def clear_all_orders():
+    conn = get_db_connection()
+    conn.execute('DELETE FROM orders')
+    conn.commit()
+    conn.close()
+    return jsonify({'message': '🧹 All orders cleared successfully!'})
+
+
 @app.route('/api/orders', methods=['POST'])
 def create_order():
     data = request.get_json()
