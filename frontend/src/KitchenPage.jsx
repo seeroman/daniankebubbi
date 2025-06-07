@@ -15,7 +15,9 @@ const KitchenPage = () => {
   const [showCompletedAll, setShowCompletedAll] = useState(false);
   const [completedOrdersTodayList, setCompletedOrdersTodayList] = useState([]);
   const [completedOrdersAllList, setCompletedOrdersAllList] = useState([]);
-  const [permissionsGranted, setPermissionsGranted] = useState(false);
+  const [permissionsGranted, setPermissionsGranted] = useState(
+    localStorage.getItem('kitchenPermissionsGranted') === 'true'
+  );
   const [newOrderAlert, setNewOrderAlert] = useState(false);
   const audioRef = useRef(null);
   const prevOrderIds = useRef([]);
@@ -30,7 +32,12 @@ const KitchenPage = () => {
       
       // Request notification permissions
       if (Notification.permission !== 'granted') {
-        await Notification.requestPermission();
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          localStorage.setItem('kitchenPermissionsGranted', 'true');
+        }
+      } else {
+        localStorage.setItem('kitchenPermissionsGranted', 'true');
       }
       
       setPermissionsGranted(true);
@@ -298,11 +305,17 @@ const KitchenPage = () => {
         >
           🔔 Enable Notifications
         </button>
-        <p className="text-gray-600 max-w-md mx-auto">
+        <p className="text-gray-600 max-w-md mx-auto mb-6">
           Please enable audio and notification permissions to get alerts for new orders.
           This is required for the system to notify you when new orders arrive,
           especially when the browser is in the background.
         </p>
+        <button 
+          onClick={() => setPermissionsGranted(true)}
+          className="text-sm text-gray-500 underline"
+        >
+          Continue without notifications
+        </button>
       </div>
     );
   }
