@@ -20,6 +20,19 @@ def debug_schema():
     conn.close()
     return jsonify([{col["name"]: col["type"]} for col in result])
 
+@app.route('/debug/add-completion-columns')
+def add_completion_columns():
+    conn = get_db_connection()
+    try:
+        conn.execute("ALTER TABLE orders ADD COLUMN completion_time TEXT;")
+        conn.execute("ALTER TABLE orders ADD COLUMN time_taken_minutes INTEGER;")
+        conn.commit()
+        return "✅ Added completion_time and time_taken_minutes columns!"
+    except sqlite3.OperationalError as e:
+        return f"Columns already exist: {str(e)}"
+    finally:
+        conn.close()
+
 @app.route('/debug/fix-custom-order-id')
 def fix_custom_order_id():
     conn = get_db_connection()
@@ -36,31 +49,32 @@ def clear_all_orders():
     conn.close()
     return jsonify({'message': '🧹 All orders cleared successfully!'})
 
-
 @app.route('/api/orders', methods=['POST'])
 def create_order():
     data = request.get_json()
     print("📦 Received Order Data:", data)
-    # Add current timestamp
-    LOCAL_TIMEZONE = pytz.timezone('Europe/Helsinki')  # Change if needed
-    order_time = data.get('time')
-    if not order_time:
-        now = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE)
-        order_time = now.strftime('%d-%m-%y %I:%M %p')  # e.g., 04-06-25 11:57 AM
-    payment_status = data.get('paymentStatus', 'UNPAID')  # Default to UNPAID
+    
+    LOCAL_TIMEZONE = pytz.timezone('Europe/Helsinki')
+    now = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE)
+    
+    # Set order time if not provided
+    order_time = data.get('time') or now.strftime('%d-%m-%y %I:%M %p')
+    payment_status = data.get('paymentStatus', 'UNPAID')
 
-     # Generate custom_order_id
-    today_prefix = now.strftime('%d%m%y')  # e.g. 040625
+    # Generate custom_order_id
+    today_prefix = now.strftime('%d%m%y')
     conn = get_db_connection()
     result = conn.execute(
         "SELECT COUNT(*) as count FROM orders WHERE time LIKE ?",
         (now.strftime('%d-%m-%y') + '%',)
     ).fetchone()
     daily_count = result['count'] + 1
-    custom_order_id = f"{today_prefix}-{daily_count:03d}"  # e.g. 040625-001
+    custom_order_id = f"{today_prefix}-{daily_count:03d}"
     
     conn.execute(
-        'INSERT INTO orders (custom_order_id, waiter, customer, items, status, time, paymentStatus) VALUES (?, ?, ?, ?, ?, ?,?)',
+        '''INSERT INTO orders 
+        (custom_order_id, waiter, customer, items, status, time, paymentStatus) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)''',
         (
             custom_order_id,
             data['waiter'],
@@ -95,11 +109,43 @@ def get_orders():
 
 @app.route('/api/orders/<int:order_id>', methods=['PATCH'])
 def mark_order_done(order_id):
+    LOCAL_TIMEZONE = pytz.timezone('Europe/Helsinki')
+    completion_time = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE).strftime('%d-%m-%y %I:%M %p')
+    
     conn = get_db_connection()
-    conn.execute('UPDATE orders SET status = "DONE" WHERE id = ?', (order_id,))
+    
+    # Get order creation time
+    order = conn.execute('SELECT time FROM orders WHERE id = ?', (order_id,)).fetchone()
+    if not order:
+        conn.close()
+        return jsonify({'error': 'Order not found'}), 404
+    
+    # Calculate time taken in minutes
+    try:
+        created_time = datetime.strptime(order['time'], '%d-%m-%y %I:%M %p')
+        completed_time_dt = datetime.strptime(completion_time, '%d-%m-%y %I:%M %p')
+        time_taken = completed_time_dt - created_time
+        minutes_taken = int(time_taken.total_seconds() / 60)
+    except ValueError as e:
+        minutes_taken = 0  # Fallback if time parsing fails
+    
+    # Update order with completion data
+    conn.execute(
+        '''UPDATE orders 
+        SET status = "DONE", 
+            completion_time = ?,
+            time_taken_minutes = ?
+        WHERE id = ?''',
+        (completion_time, minutes_taken, order_id)
+    )
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Order marked as done'})
+    
+    return jsonify({
+        'message': 'Order marked as done',
+        'completion_time': completion_time,
+        'time_taken_minutes': minutes_taken
+    })
 
 @app.route('/api/orders/completed/today', methods=['GET'])
 def get_completed_orders_today():
@@ -107,22 +153,46 @@ def get_completed_orders_today():
     today = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE).strftime('%d-%m-%y')
 
     conn = get_db_connection()
-    orders = conn.execute(
+    
+    # Get count of today's completed orders
+    count_result = conn.execute(
         'SELECT COUNT(*) as total FROM orders WHERE status = "DONE" AND time LIKE ?',
         (f'{today}%',)
     ).fetchone()
+    
+    # Get average completion time
+    avg_result = conn.execute(
+        'SELECT AVG(time_taken_minutes) as avg_time FROM orders WHERE status = "DONE" AND time LIKE ?',
+        (f'{today}%',)
+    ).fetchone()
+    
     conn.close()
 
-    return jsonify({'completed_orders_today': orders['total']})
+    return jsonify({
+        'completed_orders_today': count_result['total'],
+        'avg_completion_time_minutes': round(avg_result['avg_time'], 1) if avg_result['avg_time'] else 0
+    })
 
 @app.route('/api/orders/completed/total', methods=['GET'])
 def get_completed_orders_total():
     conn = get_db_connection()
-    orders = conn.execute('SELECT COUNT(*) as total FROM orders WHERE status = "DONE"').fetchone()
+    
+    # Get total count of completed orders
+    count_result = conn.execute(
+        'SELECT COUNT(*) as total FROM orders WHERE status = "DONE"'
+    ).fetchone()
+    
+    # Get all-time average completion time
+    avg_result = conn.execute(
+        'SELECT AVG(time_taken_minutes) as avg_time FROM orders WHERE status = "DONE"'
+    ).fetchone()
+    
     conn.close()
 
-    return jsonify({'completed_orders_total': orders['total']})
-
+    return jsonify({
+        'completed_orders_total': count_result['total'],
+        'avg_completion_time_minutes': round(avg_result['avg_time'], 1) if avg_result['avg_time'] else 0
+    })
 
 @app.route('/api/orders/reset-completed', methods=['POST'])
 def reset_completed_orders():
@@ -131,7 +201,6 @@ def reset_completed_orders():
     conn.commit()
     conn.close()
     return jsonify({'message': '✅ Completed orders reset successfully.'})
-
 
 @app.route('/api/orders/completed/today/list', methods=['GET'])
 def get_today_completed_orders_list():
@@ -155,6 +224,8 @@ def get_today_completed_orders_list():
             'customer': row['customer'],
             'items': json.loads(row['items']),
             'time': row['time'],
+            'completion_time': row['completion_time'],
+            'time_taken_minutes': row['time_taken_minutes'],
             'paymentStatus': row['paymentStatus']
         }
         for row in orders
@@ -178,7 +249,12 @@ def get_all_completed_orders():
             'customer': row['customer'],
             'items': json.loads(row['items']),
             'time': row['time'],
+            'completion_time': row['completion_time'],
+            'time_taken_minutes': row['time_taken_minutes'],
             'paymentStatus': row['paymentStatus']
         }
         for row in orders
     ])
+
+if __name__ == '__main__':
+    app.run(debug=True)
