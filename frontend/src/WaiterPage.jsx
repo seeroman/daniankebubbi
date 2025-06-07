@@ -68,6 +68,136 @@ const drinkOptions = [
 
 const waiterOptions = ['Roman', 'Rahad', 'Zaid', 'Hassan'];
 
+// Expanded note suggestions
+const noteSuggestions = [
+  { text: 'spicy', triggers: ['spi', 'hot'] },
+  { text: 'mild spicy', triggers: ['mild', 'medium'] },
+  { text: 'extra spicy', triggers: ['ext', 'very'] },
+  { text: 'no onion', triggers: ['no oni', 'onion'] },
+  { text: 'no tomato', triggers: ['no tom', 'tomato'] },
+  { text: 'no salad', triggers: ['no sal', 'salad'] },
+  { text: 'extra salad', triggers: ['ext sal', 'more sal'] },
+  { text: 'extra sauce', triggers: ['ext sau', 'more sau'] },
+  { text: 'less sauce', triggers: ['les sau', 'little sau'] },
+  { text: 'no garlic', triggers: ['no gar', 'garlic'] },
+  { text: 'no cheese', triggers: ['no che', 'cheese'] },
+  { text: 'extra cheese', triggers: ['ext che', 'more che'] },
+  { text: 'well done', triggers: ['wel', 'crispy'] },
+  { text: 'less salt', triggers: ['les sal', 'salt'] },
+  { text: 'no salt', triggers: ['no sal', 'salt'] },
+  { text: 'gluten free', triggers: ['glu', 'free'] },
+  { text: 'vegan', triggers: ['veg', 'plant'] },
+  { text: 'halal', triggers: ['hal', 'islam'] },
+  { text: 'kosher', triggers: ['kos', 'jew'] },
+  { text: 'no mayo', triggers: ['no may', 'mayo'] },
+  { text: 'extra mayo', triggers: ['ext may', 'more may'] },
+  { text: 'no ketchup', triggers: ['no ket', 'ketchup'] },
+  { text: 'extra ketchup', triggers: ['ext ket', 'more ket'] },
+  { text: 'no mustard', triggers: ['no mus', 'mustard'] },
+  { text: 'extra mustard', triggers: ['ext mus', 'more mus'] },
+  { text: 'no chili', triggers: ['no chi', 'chili'] },
+  { text: 'extra chili', triggers: ['ext chi', 'more chi'] },
+  { text: 'no pepper', triggers: ['no pep', 'pepper'] },
+  { text: 'extra pepper', triggers: ['ext pep', 'more pep'] },
+  { text: 'no cucumber', triggers: ['no cuc', 'cucumber'] },
+  { text: 'extra cucumber', triggers: ['ext cuc', 'more cuc'] },
+  { text: 'no olives', triggers: ['no oli', 'olives'] },
+  { text: 'extra olives', triggers: ['ext oli', 'more oli'] },
+  { text: 'no pickle', triggers: ['no pic', 'pickle'] },
+  { text: 'extra pickle', triggers: ['ext pic', 'more pic'] },
+  { text: 'no lettuce', triggers: ['no let', 'lettuce'] },
+  { text: 'extra lettuce', triggers: ['ext let', 'more let'] },
+  { text: 'no fries', triggers: ['no fri', 'fries'] },
+  { text: 'extra fries', triggers: ['ext fri', 'more fri'] },
+  { text: 'no bread', triggers: ['no bre', 'bread'] },
+  { text: 'extra bread', triggers: ['ext bre', 'more bre'] },
+  { text: 'cut in half', triggers: ['cut', 'half'] },
+  { text: 'on the side', triggers: ['side', 'separate'] },
+  { text: 'wrapped separately', triggers: ['wrap', 'separate'] },
+  { text: 'no utensils', triggers: ['no uten', 'utensils'] },
+  { text: 'extra napkins', triggers: ['ext nap', 'napkins'] },
+  { text: 'allergen free', triggers: ['aller', 'free'] },
+  { text: 'dairy free', triggers: ['dairy', 'free'] },
+  { text: 'nut free', triggers: ['nut', 'free'] },
+  { text: 'soy free', triggers: ['soy', 'free'] },
+  { text: 'egg free', triggers: ['egg', 'free'] },
+];
+
+const NoteInputWithSuggestions = ({ value, onChange, itemId }) => {
+  const [activeSuggestions, setActiveSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const handleNoteChange = (e) => {
+    const input = e.target.value;
+    onChange(e);
+
+    if (input.includes(',')) {
+      const lastPart = input.split(',').pop().trim();
+      if (lastPart.length > 1) {
+        const matched = noteSuggestions.filter(suggestion => 
+          suggestion.triggers.some(trigger => 
+            lastPart.toLowerCase().includes(trigger.toLowerCase())
+          )
+        );
+        setActiveSuggestions(matched);
+        setShowSuggestions(matched.length > 0);
+      } else {
+        setShowSuggestions(false);
+      }
+    } else if (input.length > 1) {
+      const matched = noteSuggestions.filter(suggestion => 
+        suggestion.triggers.some(trigger => 
+          input.toLowerCase().includes(trigger.toLowerCase())
+        )
+      );
+      setActiveSuggestions(matched);
+      setShowSuggestions(matched.length > 0);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    let newValue;
+    if (value.includes(',')) {
+      const parts = value.split(',');
+      parts[parts.length - 1] = ` ${suggestion}`;
+      newValue = parts.join(',');
+    } else {
+      newValue = suggestion;
+    }
+    onChange({ target: { value: newValue } });
+    setShowSuggestions(false);
+  };
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        placeholder="Add note..."
+        className="mt-1 w-full px-2 py-1 border rounded text-sm"
+        value={value}
+        onChange={handleNoteChange}
+        onFocus={() => value.length > 1 && setShowSuggestions(true)}
+        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+      />
+      {showSuggestions && activeSuggestions.length > 0 && (
+        <div className="absolute z-10 mt-1 w-full bg-white border rounded shadow-lg max-h-60 overflow-y-auto">
+          {activeSuggestions.map((suggestion, index) => (
+            <div
+              key={index}
+              className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-sm"
+              onClick={() => handleSuggestionClick(suggestion.text)}
+            >
+              {suggestion.text}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const WaiterPage = () => {
   const [waiterName, setWaiterName] = useState(waiterOptions[0]);
   const [customerName, setCustomerName] = useState('');
@@ -297,14 +427,10 @@ const WaiterPage = () => {
           {suggestions.map((item) => (
             <div key={item.id} className="bg-white border p-3 rounded shadow">
               <div className="font-semibold text-sm">[{item.id}] {item.name}</div>
-              <input
-                type="text"
-                placeholder="Add note..."
-                className="mt-1 w-full px-2 py-1 border rounded text-sm"
+              <NoteInputWithSuggestions
                 value={notes[item.id] || ''}
-                onChange={(e) =>
-                  setNotes((prev) => ({ ...prev, [item.id]: e.target.value }))
-                }
+                onChange={(e) => setNotes((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                itemId={item.id}
               />
               {item.type === 'main' && (
                 <select
@@ -337,7 +463,7 @@ const WaiterPage = () => {
           <ul className="space-y-2 mb-4">
             {orderItems.map((item) => (
               <li key={item.id} className="p-2 border rounded bg-white shadow-sm text-sm relative">
-                <div className="absolute top-1 right-1 flex space-x-1">
+                <div className="absolute top-1 right-1 flex space-x-3">
                   <button 
                     onClick={() => handleEditItem(item)}
                     className="text-blue-500 font-bold"
@@ -442,11 +568,10 @@ const WaiterPage = () => {
 
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">Note</label>
-              <input
-                type="text"
+              <NoteInputWithSuggestions
                 value={editForm.note}
                 onChange={(e) => setEditForm({...editForm, note: e.target.value})}
-                className="w-full px-3 py-2 border rounded"
+                itemId={editingItem.id}
               />
             </div>
 
