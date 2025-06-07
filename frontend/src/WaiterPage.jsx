@@ -79,6 +79,8 @@ const WaiterPage = () => {
   const [paymentStatus, setPaymentStatus] = useState('UNPAID');
   const [orderId, setOrderId] = useState(1);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  const [savedOrders, setSavedOrders] = useState([]);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -87,12 +89,10 @@ const WaiterPage = () => {
     }
 
     const lowerSearch = searchTerm.toLowerCase();
-
     const filtered = sampleFoodItems.filter((item) =>
       item.name.toLowerCase().includes(lowerSearch) ||
       item.id.toString().includes(lowerSearch)
     );
-
     setSuggestions(filtered);
   }, [searchTerm]);
 
@@ -103,6 +103,7 @@ const WaiterPage = () => {
     setOrderItems((prev) => [
       ...prev,
       {
+        id: Date.now(), // Add unique ID for each item for editing
         name: item.name,
         note,
         drink,
@@ -113,12 +114,55 @@ const WaiterPage = () => {
     setSuggestions([]);
   };
 
-  const handleSendToKitchen = async () => {
+  const handleRemoveItem = (id) => {
+    setOrderItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleHoldOrder = () => {
     if (orderItems.length === 0) {
-      alert('No items in the order.');
+      setToast({ show: true, message: '❌ No items to save', type: 'error' });
+      setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
       return;
     }
 
+    const newSavedOrder = {
+      id: Date.now(),
+      customer: customerName || 'No name',
+      items: [...orderItems],
+      paymentStatus,
+      waiter: waiterName,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    setSavedOrders(prev => [newSavedOrder, ...prev]);
+    setOrderItems([]);
+    setCustomerName('');
+    setPaymentStatus('UNPAID');
+
+    setToast({ show: true, message: '✅ Order saved for later', type: 'success' });
+    setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
+  };
+
+  const handleLoadSavedOrder = (order) => {
+    setOrderItems(order.items);
+    setCustomerName(order.customer);
+    setPaymentStatus(order.paymentStatus);
+    setWaiterName(order.waiter);
+    
+    setSavedOrders(prev => prev.filter(o => o.id !== order.id));
+  };
+
+  const handleSendToKitchen = async () => {
+    if (orderItems.length === 0) {
+      setToast({ show: true, message: '❌ No items in the order', type: 'error' });
+      setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
+      return;
+    }
+
+    setIsConfirming(true);
+  };
+
+  const confirmSendToKitchen = async () => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/orders`, {
         waiter: waiterName,
@@ -129,24 +173,40 @@ const WaiterPage = () => {
       });
 
       setToast({ show: true, message: `✅ Order #${orderId} sent to kitchen!`, type: 'success' });
-
       setOrderItems([]);
       setCustomerName('');
       setPaymentStatus('UNPAID');
-      setOrderId((prev) => prev + 1);
+      setOrderId(prev => prev + 1);
+      setIsConfirming(false);
 
       setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
     } catch (error) {
       setToast({ show: true, message: '❌ Failed to send order. Try again.', type: 'error' });
-
+      setIsConfirming(false);
       setTimeout(() => setToast({ show: false, message: '', type: '' }), 2500);
     }
+  };
+
+  const cancelSendToKitchen = () => {
+    setIsConfirming(false);
   };
 
   return (
     <div className="p-4 max-w-md mx-auto bg-gray-100 min-h-screen">
       <h1 className="text-xl font-bold mb-4">🧾 Waiter Page</h1>
 
+      {/* Toast Notification */}
+      {toast.show && (
+        <div
+          className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-md text-white ${
+            toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
+
+      {/* Waiter Selection */}
       <div className="mb-2 text-sm font-medium">👤 Select Waiter</div>
       <select
         value={waiterName}
@@ -160,6 +220,7 @@ const WaiterPage = () => {
         ))}
       </select>
 
+      {/* Customer Name */}
       <input
         type="text"
         placeholder="Customer Name (optional)"
@@ -168,6 +229,7 @@ const WaiterPage = () => {
         onChange={(e) => setCustomerName(e.target.value)}
       />
 
+      {/* Item Search */}
       <input
         type="text"
         placeholder="🔍 Search item"
@@ -176,6 +238,7 @@ const WaiterPage = () => {
         onChange={(e) => setSearchTerm(e.target.value)}
       />
 
+      {/* Search Suggestions */}
       {searchTerm.length > 0 && suggestions.length > 0 && (
         <div className="mt-4 space-y-2">
           {suggestions.map((item) => (
@@ -214,12 +277,19 @@ const WaiterPage = () => {
         </div>
       )}
 
+      {/* Current Order */}
       {orderItems.length > 0 && (
         <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-2">🛒 Order Preview</h2>
-          <ul className="space-y-2">
-            {orderItems.map((item, index) => (
-              <li key={index} className="p-2 border rounded bg-white shadow-sm text-sm">
+          <h2 className="text-lg font-semibold mb-2">🛒 Current Order</h2>
+          <ul className="space-y-2 mb-4">
+            {orderItems.map((item) => (
+              <li key={item.id} className="p-2 border rounded bg-white shadow-sm text-sm relative">
+                <button 
+                  onClick={() => handleRemoveItem(item.id)}
+                  className="absolute top-1 right-1 text-red-500 font-bold"
+                >
+                  ×
+                </button>
                 <div><strong>{item.name}</strong></div>
                 {item.note && <div className="text-gray-600">📝 {item.note}</div>}
                 {item.drink && <div className="text-gray-600">🥤 {item.drink}</div>}
@@ -227,6 +297,7 @@ const WaiterPage = () => {
             ))}
           </ul>
 
+          {/* Payment Status */}
           <div className="mt-4">
             <label className="block text-sm font-medium mb-1">💰 Payment Status</label>
             <select
@@ -239,22 +310,72 @@ const WaiterPage = () => {
             </select>
           </div>
 
-          <button
-            onClick={handleSendToKitchen}
-            className="mt-4 w-full bg-green-600 text-white py-2 rounded font-medium"
-          >
-            🚀 Send to Kitchen
-          </button>
+          {/* Action Buttons */}
+          <div className="flex space-x-2 mt-4">
+            <button
+              onClick={handleHoldOrder}
+              className="flex-1 bg-yellow-500 text-white py-2 rounded font-medium"
+            >
+              💾 Hold Order
+            </button>
+            <button
+              onClick={handleSendToKitchen}
+              className="flex-1 bg-green-600 text-white py-2 rounded font-medium"
+            >
+              🚀 Send to Kitchen
+            </button>
+          </div>
         </div>
       )}
 
-      {toast.show && (
-        <div
-          className={`fixed bottom-4 left-4 px-4 py-2 rounded shadow-md text-white ${
-            toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-          }`}
-        >
-          {toast.message}
+      {/* Saved Orders Section */}
+      {savedOrders.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold mb-2">📦 Saved Orders</h2>
+          <div className="space-y-2">
+            {savedOrders.map((order) => (
+              <div key={order.id} className="p-3 border rounded bg-white shadow-sm">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-semibold">{order.customer}</div>
+                    <div className="text-sm text-gray-600">{order.timestamp}</div>
+                    <div className="text-sm">{order.items.length} items</div>
+                    <div className="text-sm">Status: {order.paymentStatus}</div>
+                  </div>
+                  <button
+                    onClick={() => handleLoadSavedOrder(order)}
+                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
+                  >
+                    Load
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {isConfirming && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-lg max-w-sm w-full">
+            <h3 className="text-lg font-bold mb-4">Confirm Order</h3>
+            <p className="mb-4">Are you sure you want to send this order to the kitchen?</p>
+            <div className="flex space-x-4">
+              <button
+                onClick={cancelSendToKitchen}
+                className="flex-1 bg-gray-300 text-gray-800 py-2 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSendToKitchen}
+                className="flex-1 bg-green-600 text-white py-2 rounded"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
