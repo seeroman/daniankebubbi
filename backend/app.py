@@ -29,7 +29,7 @@ def debug_schema():
 
 @app.route('/debug/verify-schema')
 def verify_schema():
-    required_columns = ['status', 'time_taken_minutes', 'completion_time']
+    required_columns = ['status', 'time_taken_minutes', 'completion_time', 'custom_order_id', 'day_of_week']
     conn = get_db_connection()
     try:
         result = conn.execute("PRAGMA table_info(orders)").fetchall()
@@ -40,7 +40,11 @@ def verify_schema():
             return jsonify({
                 'status': 'error',
                 'missing_columns': missing,
-                'suggestion': 'Run /debug/add-completion-columns'
+                'suggestions': [
+                    '/debug/add-completion-columns',
+                    '/debug/fix-custom-order-id',
+                    '/debug/add-day-of-week-column'
+                ]
             }), 400
         return jsonify({'status': 'ok', 'columns': existing_columns})
     finally:
@@ -80,6 +84,58 @@ def fix_custom_order_id():
             'status': 'exists',
             'message': str(e)
         })
+    finally:
+        conn.close()
+
+@app.route('/debug/add-day-of-week-column')
+def add_day_of_week_column():
+    conn = get_db_connection()
+    try:
+        conn.execute("ALTER TABLE orders ADD COLUMN day_of_week INTEGER")
+        conn.execute("UPDATE orders SET day_of_week = CAST(strftime('%w', time) AS INTEGER)")
+        conn.commit()
+        return jsonify({
+            'status': 'success', 
+            'message': 'Added day_of_week column with calculated values'
+        })
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" in str(e):
+            return jsonify({'status': 'exists', 'message': str(e)})
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/debug/add-time-index')
+def add_time_index():
+    conn = get_db_connection()
+    try:
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_time ON orders(time)")
+        conn.commit()
+        return jsonify({
+            'status': 'success',
+            'message': 'Added index on time column for faster queries'
+        })
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/debug/test-time-parsing')
+def test_time_parsing():
+    conn = get_db_connection()
+    try:
+        sample = conn.execute("SELECT time FROM orders LIMIT 1").fetchone()
+        if not sample:
+            return jsonify({'error': 'No orders found'}), 404
+            
+        test = conn.execute("SELECT strftime('%H', ?) as hour", (sample['time'],)).fetchone()
+        return jsonify({
+            'sample_time': sample['time'],
+            'parsed_hour': test['hour'],
+            'compatible': test['hour'] is not None
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     finally:
         conn.close()
 
@@ -124,10 +180,17 @@ def create_order():
         daily_count = result['count'] + 1
         custom_order_id = f"{today_prefix}-{daily_count:03d}"
         
+        # Calculate day of week (0=Sunday, 6=Saturday)
+        day_of_week = now.weekday()  # Python uses 0=Monday, so we adjust
+        if day_of_week == 6:
+            day_of_week = 0  # Sunday
+        else:
+            day_of_week += 1
+        
         conn.execute(
             '''INSERT INTO orders 
-            (custom_order_id, waiter, customer, items, status, time, paymentStatus) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)''',
+            (custom_order_id, waiter, customer, items, status, time, paymentStatus, day_of_week) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
             (
                 custom_order_id,
                 data['waiter'],
@@ -135,7 +198,8 @@ def create_order():
                 json.dumps(data['items']),
                 'NEW',
                 order_time,
-                payment_status
+                payment_status,
+                day_of_week
             )
         )
         conn.commit()
@@ -215,6 +279,167 @@ def mark_order_done(order_id):
         })
     except Exception as e:
         app.logger.error(f"Error marking order done: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+# ========== ANALYTICS ENDPOINTS ==========
+@app.route('/api/analytics/hourly-trends', methods=['GET'])
+def get_hourly_trends():
+    try:
+        conn = get_db_connection()
+        
+        # Get hourly order counts
+        hourly_counts = conn.execute('''
+            SELECT strftime('%H', time) as hour, 
+                   COUNT(*) as order_count
+            FROM orders
+            GROUP BY hour
+            ORDER BY hour
+        ''').fetchall()
+        
+        # Get hourly average preparation times
+        hourly_avg_times = conn.execute('''
+            SELECT strftime('%H', time) as hour, 
+                   AVG(time_taken_minutes) as avg_time
+            FROM orders
+            WHERE status = 'DONE'
+            GROUP BY hour
+            ORDER BY hour
+        ''').fetchall()
+        
+        # Convert to dictionaries for easier processing
+        counts_dict = {row['hour']: row['order_count'] for row in hourly_counts}
+        times_dict = {row['hour']: round(row['avg_time'], 1) if row['avg_time'] else 0 
+                     for row in hourly_avg_times}
+        
+        # Prepare response for all 24 hours
+        response = []
+        for hour in range(24):
+            hour_str = f"{hour:02d}"
+            response.append({
+                'hour': hour_str,
+                'order_count': counts_dict.get(hour_str, 0),
+                'avg_preparation_time': times_dict.get(hour_str, 0)
+            })
+            
+        return jsonify(response)
+    except Exception as e:
+        app.logger.error(f"Error fetching hourly trends: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+@app.route('/api/analytics/daily-volume', methods=['GET'])
+def get_daily_volume():
+    try:
+        conn = get_db_connection()
+        
+        # Get daily order counts
+        daily_counts = conn.execute('''
+            SELECT strftime('%Y-%m-%d', time) as date, 
+                   COUNT(*) as order_count
+            FROM orders
+            GROUP BY date
+            ORDER BY date DESC
+            LIMIT 30
+        ''').fetchall()
+        
+        # Get daily average preparation times
+        daily_avg_times = conn.execute('''
+            SELECT strftime('%Y-%m-%d', time) as date, 
+                   AVG(time_taken_minutes) as avg_time
+            FROM orders
+            WHERE status = 'DONE'
+            GROUP BY date
+            ORDER BY date DESC
+            LIMIT 30
+        ''').fetchall()
+        
+        # Convert to dictionaries for easier processing
+        times_dict = {row['date']: round(row['avg_time'], 1) if row['avg_time'] else 0 
+                     for row in daily_avg_times}
+        
+        # Prepare response
+        response = []
+        for row in daily_counts:
+            response.append({
+                'date': row['date'],
+                'order_count': row['order_count'],
+                'avg_preparation_time': times_dict.get(row['date'], 0)
+            })
+            
+        return jsonify(response)
+    except Exception as e:
+        app.logger.error(f"Error fetching daily volume: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+@app.route('/api/analytics/busy-hours', methods=['GET'])
+def get_busy_hours():
+    try:
+        conn = get_db_connection()
+        
+        # Get top 5 busiest hours
+        busy_hours = conn.execute('''
+            SELECT strftime('%H', time) as hour, 
+                   COUNT(*) as order_count
+            FROM orders
+            GROUP BY hour
+            ORDER BY order_count DESC
+            LIMIT 5
+        ''').fetchall()
+        
+        return jsonify([
+            {'hour': row['hour'], 'order_count': row['order_count']}
+            for row in busy_hours
+        ])
+    except Exception as e:
+        app.logger.error(f"Error fetching busy hours: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+@app.route('/api/analytics/busy-days', methods=['GET'])
+def get_busy_days():
+    try:
+        conn = get_db_connection()
+        
+        # Get order counts by day of week (using pre-calculated column)
+        busy_days = conn.execute('''
+            SELECT day_of_week, 
+                   COUNT(*) as order_count
+            FROM orders
+            GROUP BY day_of_week
+            ORDER BY order_count DESC
+        ''').fetchall()
+        
+        # Map day numbers to names
+        day_names = {
+            0: 'Sunday',
+            1: 'Monday',
+            2: 'Tuesday',
+            3: 'Wednesday',
+            4: 'Thursday',
+            5: 'Friday',
+            6: 'Saturday'
+        }
+        
+        return jsonify([
+            {
+                'day_name': day_names.get(row['day_of_week'], 'Unknown'),
+                'day_number': row['day_of_week'],
+                'order_count': row['order_count']
+            }
+            for row in busy_days
+        ])
+    except Exception as e:
+        app.logger.error(f"Error fetching busy days: {str(e)}")
         return jsonify({'error': str(e)}), 500
     finally:
         if 'conn' in locals():
