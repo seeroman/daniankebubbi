@@ -8,7 +8,6 @@ import pytz
 app = Flask(__name__)
 CORS(app)
 
-# ========== Database Connection ==========
 def get_db_connection():
     conn = sqlite3.connect('orders.db')
     conn.row_factory = sqlite3.Row
@@ -123,7 +122,7 @@ def test_time_parsing():
         if not sample:
             return jsonify({'error': 'No orders found'}), 404
             
-        test = conn.execute("SELECT strftime('%H', ?) as hour", (sample['time'],)).fetchone()
+        test = conn.execute("SELECT strftime('%H', time) as hour FROM orders LIMIT 1").fetchone()
         return jsonify({
             'sample_time': sample['time'],
             'parsed_hour': test['hour'],
@@ -157,28 +156,25 @@ def create_order():
         LOCAL_TIMEZONE = pytz.timezone('Europe/Helsinki')
         now = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE)
         
-        # Validate required fields
         if 'waiter' not in data or 'items' not in data:
             return jsonify({'error': 'Missing required fields (waiter or items)'}), 400
 
-        # Set order time if not provided
-        order_time = data.get('time') or now.strftime('%d-%m-%y %I:%M %p')
+        # Use ISO format for time storage
+        order_time = data.get('time') or now.strftime('%Y-%m-%d %H:%M:%S')
         payment_status = data.get('paymentStatus', 'UNPAID')
 
-        # Generate custom_order_id
         today_prefix = now.strftime('%d%m%y')
         conn = get_db_connection()
         result = conn.execute(
-            "SELECT COUNT(*) as count FROM orders WHERE time LIKE ?",
-            (now.strftime('%d-%m-%y') + '%',)
+            "SELECT COUNT(*) as count FROM orders WHERE strftime('%Y-%m-%d', time) = ?",
+            (now.strftime('%Y-%m-%d'),)
         ).fetchone()
         daily_count = result['count'] + 1
         custom_order_id = f"{today_prefix}-{daily_count:03d}"
         
-        # Calculate day of week (0=Sunday, 6=Saturday)
-        day_of_week = now.weekday()  # Python uses 0=Monday, so we adjust
+        day_of_week = now.weekday()
         if day_of_week == 6:
-            day_of_week = 0  # Sunday
+            day_of_week = 0
         else:
             day_of_week += 1
         
@@ -238,25 +234,20 @@ def get_orders():
 def mark_order_done(order_id):
     try:
         LOCAL_TIMEZONE = pytz.timezone('Europe/Helsinki')
-        completion_time = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE).strftime('%d-%m-%y %I:%M %p')
+        completion_time = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S')
         
         conn = get_db_connection()
-        
-        # Get order creation time
         order = conn.execute('SELECT time FROM orders WHERE id = ?', (order_id,)).fetchone()
         if not order:
             return jsonify({'error': 'Order not found'}), 404
         
-        # Calculate time taken in minutes
         try:
-            created_time = datetime.strptime(order['time'], '%d-%m-%y %I:%M %p')
-            completed_time_dt = datetime.strptime(completion_time, '%d-%m-%y %I:%M %p')
-            time_taken = completed_time_dt - created_time
-            minutes_taken = int(time_taken.total_seconds() / 60)
-        except ValueError as e:
+            created_time = datetime.strptime(order['time'], '%Y-%m-%d %H:%M:%S')
+            completed_time_dt = datetime.strptime(completion_time, '%Y-%m-%d %H:%M:%S')
+            minutes_taken = int((completed_time_dt - created_time).total_seconds() / 60)
+        except ValueError:
             minutes_taken = 0
         
-        # Update order with completion data
         conn.execute(
             '''UPDATE orders 
             SET status = "DONE", 
@@ -264,7 +255,6 @@ def mark_order_done(order_id):
                 time_taken_minutes = ?
             WHERE id = ?''',
             (completion_time, minutes_taken, order_id)
-        )
         conn.commit()
         
         return jsonify({
@@ -285,31 +275,25 @@ def get_hourly_trends():
     try:
         conn = get_db_connection()
         
-        # Get hourly order counts
         hourly_counts = conn.execute('''
-            SELECT strftime('%H', time) as hour, 
-                   COUNT(*) as order_count
+            SELECT strftime('%H', time) as hour, COUNT(*) as order_count
             FROM orders
             GROUP BY hour
             ORDER BY hour
         ''').fetchall()
         
-        # Get hourly average preparation times
         hourly_avg_times = conn.execute('''
-            SELECT strftime('%H', time) as hour, 
-                   AVG(time_taken_minutes) as avg_time
+            SELECT strftime('%H', time) as hour, AVG(time_taken_minutes) as avg_time
             FROM orders
             WHERE status = 'DONE'
             GROUP BY hour
             ORDER BY hour
         ''').fetchall()
         
-        # Convert to dictionaries for easier processing
         counts_dict = {row['hour']: row['order_count'] for row in hourly_counts}
         times_dict = {row['hour']: round(row['avg_time'], 1) if row['avg_time'] else 0 
                      for row in hourly_avg_times}
         
-        # Prepare response for all 24 hours
         response = []
         for hour in range(24):
             hour_str = f"{hour:02d}"
@@ -332,20 +316,16 @@ def get_daily_volume():
     try:
         conn = get_db_connection()
         
-        # Get daily order counts
         daily_counts = conn.execute('''
-            SELECT strftime('%Y-%m-%d', time) as date, 
-                   COUNT(*) as order_count
+            SELECT strftime('%Y-%m-%d', time) as date, COUNT(*) as order_count
             FROM orders
             GROUP BY date
             ORDER BY date DESC
             LIMIT 30
         ''').fetchall()
         
-        # Get daily average preparation times
         daily_avg_times = conn.execute('''
-            SELECT strftime('%Y-%m-%d', time) as date, 
-                   AVG(time_taken_minutes) as avg_time
+            SELECT strftime('%Y-%m-%d', time) as date, AVG(time_taken_minutes) as avg_time
             FROM orders
             WHERE status = 'DONE'
             GROUP BY date
@@ -353,11 +333,9 @@ def get_daily_volume():
             LIMIT 30
         ''').fetchall()
         
-        # Convert to dictionaries for easier processing
         times_dict = {row['date']: round(row['avg_time'], 1) if row['avg_time'] else 0 
                      for row in daily_avg_times}
         
-        # Prepare response
         response = []
         for row in daily_counts:
             response.append({
@@ -379,20 +357,15 @@ def get_busy_hours():
     try:
         conn = get_db_connection()
         
-        # Get top 5 busiest hours
         busy_hours = conn.execute('''
-            SELECT strftime('%H', time) as hour, 
-                   COUNT(*) as order_count
+            SELECT strftime('%H', time) as hour, COUNT(*) as order_count
             FROM orders
             GROUP BY hour
             ORDER BY order_count DESC
             LIMIT 5
         ''').fetchall()
         
-        return jsonify([
-            {'hour': row['hour'], 'order_count': row['order_count']}
-            for row in busy_hours
-        ])
+        return jsonify([{'hour': row['hour'], 'order_count': row['order_count']} for row in busy_hours])
     except Exception as e:
         app.logger.error(f"Error fetching busy hours: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -405,34 +378,21 @@ def get_busy_days():
     try:
         conn = get_db_connection()
         
-        # Get order counts by day of week (using pre-calculated column)
         busy_days = conn.execute('''
-            SELECT day_of_week, 
-                   COUNT(*) as order_count
+            SELECT day_of_week, COUNT(*) as order_count
             FROM orders
             GROUP BY day_of_week
             ORDER BY order_count DESC
         ''').fetchall()
         
-        # Map day numbers to names
-        day_names = {
-            0: 'Sunday',
-            1: 'Monday',
-            2: 'Tuesday',
-            3: 'Wednesday',
-            4: 'Thursday',
-            5: 'Friday',
-            6: 'Saturday'
-        }
+        day_names = {0: 'Sunday', 1: 'Monday', 2: 'Tuesday', 
+                    3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday'}
         
-        return jsonify([
-            {
-                'day_name': day_names.get(row['day_of_week'], 'Unknown'),
-                'day_number': row['day_of_week'],
-                'order_count': row['order_count']
-            }
-            for row in busy_days
-        ])
+        return jsonify([{
+            'day_name': day_names.get(row['day_of_week'], 'Unknown'),
+            'day_number': row['day_of_week'],
+            'order_count': row['order_count']
+        } for row in busy_days])
     except Exception as e:
         app.logger.error(f"Error fetching busy days: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -443,19 +403,17 @@ def get_busy_days():
 @app.route('/api/orders/completed/today', methods=['GET'])
 def get_completed_orders_today():
     try:
-        LOCAL_TIMEZONE = pytz.timezone('Europe/Helsinki')
-        today = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE).strftime('%d-%m-%y')
-
+        today = datetime.now(pytz.utc).astimezone(pytz.timezone('Europe/Helsinki')).strftime('%Y-%m-%d')
         conn = get_db_connection()
         
         count_result = conn.execute(
-            'SELECT COUNT(*) as total FROM orders WHERE status = "DONE" AND time LIKE ?',
-            (f'{today}%',)
+            'SELECT COUNT(*) as total FROM orders WHERE status = "DONE" AND strftime("%Y-%m-%d", time) = ?',
+            (today,)
         ).fetchone()
         
         avg_result = conn.execute(
-            'SELECT AVG(time_taken_minutes) as avg_time FROM orders WHERE status = "DONE" AND time LIKE ?',
-            (f'{today}%',)
+            'SELECT AVG(time_taken_minutes) as avg_time FROM orders WHERE status = "DONE" AND strftime("%Y-%m-%d", time) = ?',
+            (today,)
         ).fetchone()
         
         return jsonify({
@@ -464,10 +422,7 @@ def get_completed_orders_today():
         })
     except Exception as e:
         app.logger.error(f"Error fetching today's completed orders: {str(e)}")
-        return jsonify({
-            'error': 'Failed to fetch completed orders',
-            'details': str(e)
-        }), 500
+        return jsonify({'error': str(e)}), 500
     finally:
         if 'conn' in locals():
             conn.close()
@@ -491,10 +446,7 @@ def get_completed_orders_total():
         })
     except Exception as e:
         app.logger.error(f"Error fetching total completed orders: {str(e)}")
-        return jsonify({
-            'error': 'Failed to fetch completed orders total',
-            'details': str(e)
-        }), 500
+        return jsonify({'error': str(e)}), 500
     finally:
         if 'conn' in locals():
             conn.close()
@@ -505,7 +457,7 @@ def reset_completed_orders():
         conn = get_db_connection()
         conn.execute('DELETE FROM orders WHERE status = "DONE"')
         conn.commit()
-        return jsonify({'message': '✅ Completed orders reset successfully.'})
+        return jsonify({'message': 'Completed orders reset successfully.'})
     except Exception as e:
         app.logger.error(f"Error resetting completed orders: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -516,31 +468,26 @@ def reset_completed_orders():
 @app.route('/api/orders/completed/today/list', methods=['GET'])
 def get_today_completed_orders_list():
     try:
-        LOCAL_TIMEZONE = pytz.timezone('Europe/Helsinki')
-        today = datetime.now(pytz.utc).astimezone(LOCAL_TIMEZONE).strftime('%d-%m-%y')
-
+        today = datetime.now(pytz.utc).astimezone(pytz.timezone('Europe/Helsinki')).strftime('%Y-%m-%d')
         conn = get_db_connection()
         orders = conn.execute(
             '''SELECT * FROM orders 
-            WHERE status = "DONE" AND time LIKE ?
+            WHERE status = "DONE" AND strftime("%Y-%m-%d", time) = ?
             ORDER BY time DESC''',
-            (f'{today}%',)
+            (today,)
         ).fetchall()
         
-        return jsonify([
-            {
-                'id': row['id'],
-                'custom_order_id': row['custom_order_id'],
-                'waiter': row['waiter'],
-                'customer': row['customer'],
-                'items': json.loads(row['items']),
-                'time': row['time'],
-                'completion_time': row['completion_time'],
-                'time_taken_minutes': row['time_taken_minutes'],
-                'paymentStatus': row['paymentStatus']
-            }
-            for row in orders
-        ])
+        return jsonify([{
+            'id': row['id'],
+            'custom_order_id': row['custom_order_id'],
+            'waiter': row['waiter'],
+            'customer': row['customer'],
+            'items': json.loads(row['items']),
+            'time': row['time'],
+            'completion_time': row['completion_time'],
+            'time_taken_minutes': row['time_taken_minutes'],
+            'paymentStatus': row['paymentStatus']
+        } for row in orders])
     except Exception as e:
         app.logger.error(f"Error fetching today's completed orders list: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -558,20 +505,17 @@ def get_all_completed_orders():
             ORDER BY time DESC'''
         ).fetchall()
         
-        return jsonify([
-            {
-                'id': row['id'],
-                'custom_order_id': row['custom_order_id'],
-                'waiter': row['waiter'],
-                'customer': row['customer'],
-                'items': json.loads(row['items']),
-                'time': row['time'],
-                'completion_time': row['completion_time'],
-                'time_taken_minutes': row['time_taken_minutes'],
-                'paymentStatus': row['paymentStatus']
-            }
-            for row in orders
-        ])
+        return jsonify([{
+            'id': row['id'],
+            'custom_order_id': row['custom_order_id'],
+            'waiter': row['waiter'],
+            'customer': row['customer'],
+            'items': json.loads(row['items']),
+            'time': row['time'],
+            'completion_time': row['completion_time'],
+            'time_taken_minutes': row['time_taken_minutes'],
+            'paymentStatus': row['paymentStatus']
+        } for row in orders])
     except Exception as e:
         app.logger.error(f"Error fetching all completed orders: {str(e)}")
         return jsonify({'error': str(e)}), 500
