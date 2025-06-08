@@ -6,13 +6,8 @@ from datetime import datetime
 import pytz
 
 app = Flask(__name__)
-CORS(app, resources={
-    r"/api/*": {
-        "origins": "*",
-        "methods": ["GET", "POST", "PATCH", "DELETE"],
-        "allow_headers": ["Content-Type"]
-    }
-})
+CORS(app)
+
 # ========== Database Connection ==========
 def get_db_connection():
     conn = sqlite3.connect('orders.db')
