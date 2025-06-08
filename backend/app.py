@@ -255,6 +255,7 @@ def mark_order_done(order_id):
                 time_taken_minutes = ?
             WHERE id = ?''',
             (completion_time, minutes_taken, order_id)
+        )
         conn.commit()
         
         return jsonify({
