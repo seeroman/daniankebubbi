@@ -48,9 +48,13 @@ const AdminPage = () => {
       setLoading(true);
 
       const baseUrl = 'http://your-api-address:5000/api/analytics';
-      const todayStats = await fetch(`${baseUrl}/hourly-trends`).then((res) =>
+
+      // First fetch for hourly trends
+      const hourlyTrends = await fetch(`${baseUrl}/hourly-trends`).then((res) =>
         res.json(),
       );
+
+      // Other analytics endpoints
       const dailyVolume = await fetch(`${baseUrl}/daily-volume`).then((res) =>
         res.json(),
       );
@@ -60,23 +64,26 @@ const AdminPage = () => {
       const busyDays = await fetch(`${baseUrl}/busy-days`).then((res) =>
         res.json(),
       );
-      const todayStats = await fetch(`${baseUrl}/orders/completed/today`).then(
-        (res) => res.json(),
-      );
+
+      // Today's and overall stats
+      const todayCompletion = await fetch(
+        `${baseUrl}/orders/completed/today`,
+      ).then((res) => res.json());
       const overallStats = await fetch(
         `${baseUrl}/orders/completed/total`,
       ).then((res) => res.json());
 
       setAnalyticsData({
-        hourlyTrends: todayStats,
+        hourlyTrends,
         dailyVolume,
         busyHours,
         busyDays,
-        todayStats,
+        todayStats: todayCompletion,
         overallStats,
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);
+      // Optionally set error state here
     } finally {
       setLoading(false);
     }
