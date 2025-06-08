@@ -14,6 +14,8 @@ CORS(app, resources={
     }
 })
 
+
+
 def get_db_connection():
     conn = sqlite3.connect('orders.db')
     conn.row_factory = sqlite3.Row
