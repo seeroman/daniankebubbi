@@ -9,6 +9,7 @@ import {
 import HomePage from './HomePage';
 import WaiterPage from './WaiterPage';
 import KitchenPage from './KitchenPage';
+import AdminPage from './adminPage';
 
 function NotFound() {
   return (
@@ -22,12 +23,10 @@ function App() {
       <Routes>
         {/* Home page with buttons */}
         <Route path="/" element={<HomePage />} />
-
         {/* Main routes */}
         <Route path="/waiter" element={<WaiterPage />} />
         <Route path="/kitchen" element={<KitchenPage />} />
-
-        {/* Fallback */}
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
