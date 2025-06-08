@@ -8,21 +8,26 @@ function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center h-screen space-y-6">
       <h1 className="text-3xl font-bold">Welcome to Danian Kebab</h1>
-<div className="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
-  <button
-    onClick={() => navigate('/waiter')}
-    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-  >
-    Go to Waiter Page
-  </button>
-  <button
-    onClick={() => navigate('/kitchen')}
-    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-  >
-    Go to Kitchen Page
-  </button>
-</div>
-
+      <div className="space-x-4">
+        <button
+          onClick={() => navigate('/waiter')}
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Waiter
+        </button>
+        <button
+          onClick={() => navigate('/kitchen')}
+          className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+        >
+          Kitchen
+        </button>
+        <button
+          onClick={() => navigate('/admin')}
+          className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+        >
+          Admin
+        </button>
+      </div>
     </div>
   );
 }
