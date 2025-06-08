@@ -168,7 +168,7 @@ const KitchenPage = () => {
         fetchCompletedOrdersAll();
         
         // Show completion alert
-        alert(`Order #${orderId} completed in ${result.time_taken_minutes} minutes`);
+       // alert(`Order #${orderId} completed in ${result.time_taken_minutes} minutes`);
       }
     } catch (error) {
       console.error('Failed to mark order as done:', error);
