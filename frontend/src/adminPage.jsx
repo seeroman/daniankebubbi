@@ -68,19 +68,19 @@ const AdminPage = () => {
 
       // First fetch for hourly trends
       const hourlyTrends = await fetch(
-        `${API_BASE_URL}/api/hourly-trends`,
+        `${API_BASE_URL}/api/analytics/hourly-trends`,
       ).then((res) => res.json());
 
       // Other analytics endpoints
-      const dailyVolume = await fetch(`${API_BASE_URL}/api/daily-volume`).then(
-        (res) => res.json(),
-      );
-      const busyHours = await fetch(`${API_BASE_URL}/api/busy-hours`).then(
-        (res) => res.json(),
-      );
-      const busyDays = await fetch(`${API_BASE_URL}/api/busy-days`).then(
-        (res) => res.json(),
-      );
+      const dailyVolume = await fetch(
+        `${API_BASE_URL}/api/analytics/daily-volume`,
+      ).then((res) => res.json());
+      const busyHours = await fetch(
+        `${API_BASE_URL}/api/analytics/busy-hours`,
+      ).then((res) => res.json());
+      const busyDays = await fetch(
+        `${API_BASE_URL}/api/analytics/busy-days`,
+      ).then((res) => res.json());
 
       // Today's and overall stats
       const todayCompletion = await fetch(
