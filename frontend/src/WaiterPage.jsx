@@ -217,6 +217,7 @@ const WaiterPage = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [orderItems, setOrderItems] = useState([]);
   const [notes, setNotes] = useState({});
+  // const [selectedDrink, setSelectedDrink] = useState(drinkOptions[0]);
   const [paymentStatus, setPaymentStatus] = useState('UNPAID');
   const [orderId, setOrderId] = useState(1);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
@@ -266,7 +267,7 @@ const WaiterPage = () => {
 
   const handleAddItem = (item) => {
     const note = notes[item.id] || '';
-    const drink = item.type === 'main' ? selectedDrink : null;
+    // const drink = item.type === 'main' ? selectedDrink : null;
 
     setOrderItems((prev) => [
       ...prev,
@@ -274,7 +275,6 @@ const WaiterPage = () => {
         id: Date.now(), // Unique ID for each item
         name: item.name,
         note,
-        drink,
         originalItemId: item.id, // Keep reference to original item
       },
     ]);
@@ -462,19 +462,7 @@ const WaiterPage = () => {
                 }
                 itemId={item.id}
               />
-              // {item.type === 'main' && (
-              //   <select
-              //     value={selectedDrink}
-              //     onChange={(e) => setSelectedDrink(e.target.value)}
-              //     className="mt-2 w-full px-2 py-1 border rounded text-sm"
-              //   >
-              //     {drinkOptions.map((drink, i) => (
-              //       <option key={i} value={drink}>
-              //         {drink}
-              //       </option>
-              //     ))}
-              //   </select>
-              // )}
+
               <button
                 onClick={() => handleAddItem(item)}
                 className="mt-2 bg-blue-500 text-white w-full py-1 rounded text-sm"
@@ -626,25 +614,6 @@ const WaiterPage = () => {
                 itemId={editingItem.id}
               />
             </div>
-
-            // {editingItem.drink !== null && (
-            //   <div className="mb-4">
-            //     <label className="block text-sm font-medium mb-1">Drink</label>
-            //     <select
-            //       value={editForm.drink}
-            //       onChange={(e) =>
-            //         setEditForm({ ...editForm, drink: e.target.value })
-            //       }
-            //       className="w-full px-3 py-2 border rounded"
-            //     >
-            //       {drinkOptions.map((drink, i) => (
-            //         <option key={i} value={drink}>
-            //           {drink}
-            //         </option>
-            //       ))}
-            //     </select>
-            //   </div>
-            // )}
 
             <div className="flex space-x-4">
               <button
