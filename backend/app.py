@@ -13,9 +13,7 @@ CORS(app, resources={
         "allow_headers": ["Content-Type"]
     }
 })
-
-
-
+# ========== Database Connection ==========
 def get_db_connection():
     conn = sqlite3.connect('orders.db')
     conn.row_factory = sqlite3.Row
