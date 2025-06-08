@@ -13,6 +13,15 @@ import {
   Legend,
 } from 'chart.js';
 
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL || 'https://daniankebubbi.onrender.com';
+
+if (!API_BASE_URL) {
+  console.warn(
+    '⚠️ REACT_APP_API_BASE_URL is not defined. Check your .env file.',
+  );
+}
+
 // Register ChartJS components
 ChartJS.register(
   CategoryScale,
@@ -47,30 +56,38 @@ const AdminPage = () => {
     try {
       setLoading(true);
 
-      const baseUrl = 'http://your-api-address:5000/api/analytics';
+      const API_BASE_URL =
+        process.env.REACT_APP_API_BASE_URL ||
+        'https://daniankebubbi.onrender.com';
+
+      if (!API_BASE_URL) {
+        console.warn(
+          '⚠️ REACT_APP_API_BASE_URL is not defined. Check your .env file.',
+        );
+      }
 
       // First fetch for hourly trends
-      const hourlyTrends = await fetch(`${baseUrl}/hourly-trends`).then((res) =>
-        res.json(),
+      const hourlyTrends = await fetch(`${API_BASE_URL}/hourly-trends`).then(
+        (res) => res.json(),
       );
 
       // Other analytics endpoints
-      const dailyVolume = await fetch(`${baseUrl}/daily-volume`).then((res) =>
+      const dailyVolume = await fetch(`${API_BASE_URL}/daily-volume`).then(
+        (res) => res.json(),
+      );
+      const busyHours = await fetch(`${API_BASE_URL}/busy-hours`).then((res) =>
         res.json(),
       );
-      const busyHours = await fetch(`${baseUrl}/busy-hours`).then((res) =>
-        res.json(),
-      );
-      const busyDays = await fetch(`${baseUrl}/busy-days`).then((res) =>
+      const busyDays = await fetch(`${API_BASE_URL}/busy-days`).then((res) =>
         res.json(),
       );
 
       // Today's and overall stats
       const todayCompletion = await fetch(
-        `${baseUrl}/orders/completed/today`,
+        `${API_BASE_URL}/orders/completed/today`,
       ).then((res) => res.json());
       const overallStats = await fetch(
-        `${baseUrl}/orders/completed/total`,
+        `${API_BASE_URL}/orders/completed/total`,
       ).then((res) => res.json());
 
       setAnalyticsData({
