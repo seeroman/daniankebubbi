@@ -4,6 +4,7 @@ import json
 from flask_cors import CORS
 from datetime import datetime
 import pytz
+import requests
 
 app = Flask(__name__)
 CORS(app)
