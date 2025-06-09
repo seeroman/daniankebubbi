@@ -335,7 +335,7 @@ const AdminPage = () => {
           </div>
         </div>
         {/* Popular Items Section */}
-        // Update the Popular Items section in the return statement
+       
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">
             Most Popular Menu Items
