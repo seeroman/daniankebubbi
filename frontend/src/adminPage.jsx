@@ -201,20 +201,23 @@ const AdminPage = () => {
 
   // Process popular items data
   const popularItemsChartData = {
-    labels: analyticsData.popularItems.popular_items.map(item => item.item_name),
+    labels:
+      analyticsData.popularItems.popular_items?.map((item) => item.item_name) ||
+      [],
     datasets: [
       {
         label: 'Order Count',
-        data: analyticsData.popularItems.popular_items.map(item => ({
-          order_count: item.order_count,
-          percentage: item.percentage_of_total
-        })),
+        data:
+          analyticsData.popularItems.popular_items?.map(
+            (item) => item.order_count,
+          ) || [],
         backgroundColor: 'rgba(99, 102, 241, 0.7)',
         borderColor: 'rgba(99, 102, 241, 1)',
         borderWidth: 1,
-        barThickness: 20,
-      }
-    ]
+        barPercentage: 0.8,
+        categoryPercentage: 0.8,
+      },
+    ],
   };
 
   return (
@@ -258,7 +261,6 @@ const AdminPage = () => {
             icon="⏳"
           />
         </div>
-
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Hourly Trends */}
@@ -302,7 +304,6 @@ const AdminPage = () => {
             </div>
           </div>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* Busiest Hours */}
           <div className="bg-white p-6 rounded-lg shadow">
@@ -333,73 +334,97 @@ const AdminPage = () => {
             </div>
           </div>
         </div>
-
         {/* Popular Items Section */}
+        // Update the Popular Items section in the return statement
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Most Popular Menu Items</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Chart - takes 2/3 space on larger screens */}
-            <div className="lg:col-span-2 h-64 lg:h-80">
-              <Bar 
-                data={popularItemsChartData}
-                options={{
-                  indexAxis: 'y',
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    tooltip: {
-                      callbacks: {
-                        label: (context) => {
-                          const data = context.raw;
-                          return [
-                            `Orders: ${data.order_count}`,
-                            `Percentage: ${data.percentage}% of total`
-                          ];
-                        }
-                      }
-                    },
-                    legend: {
-                      display: false
-                    }
-                  },
-                  scales: {
-                    x: {
-                      beginAtZero: true,
-                      title: {
-                        display: true,
-                        text: 'Number of Orders'
-                      }
-                    }
-                  }
-                }}
-              />
+          <h2 className="text-xl font-semibold mb-4">
+            Most Popular Menu Items
+          </h2>
+          {loading ? (
+            <div className="h-64 flex items-center justify-center">
+              <p>Loading popular items...</p>
             </div>
-            
-            {/* Stats Card - takes 1/3 space on larger screens */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-medium text-lg mb-3">Item Statistics</h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500">Total Items Processed</p>
-                  <p className="text-xl font-semibold">
-                    {analyticsData.popularItems.stats?.total_items_processed || 0}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Total Orders Analyzed</p>
-                  <p className="text-xl font-semibold">
-                    {analyticsData.popularItems.stats?.total_orders_processed || 0}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Skipped Items</p>
-                  <p className="text-xl font-semibold">
-                    {analyticsData.popularItems.stats?.skipped_items || 0}
-                  </p>
+          ) : analyticsData.popularItems.popular_items?.length === 0 ? (
+            <div className="h-64 flex items-center justify-center">
+              <p>No popular items data available</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 h-64 lg:h-80">
+                <Bar
+                  data={popularItemsChartData}
+                  options={{
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      tooltip: {
+                        callbacks: {
+                          label: (context) => {
+                            const item =
+                              analyticsData.popularItems.popular_items[
+                                context.dataIndex
+                              ];
+                            return [
+                              `Orders: ${item.order_count}`,
+                              `Percentage: ${item.percentage_of_total}% of total`,
+                            ];
+                          },
+                        },
+                      },
+                      legend: {
+                        display: false,
+                      },
+                    },
+                    scales: {
+                      x: {
+                        beginAtZero: true,
+                        title: {
+                          display: true,
+                          text: 'Number of Orders',
+                        },
+                      },
+                      y: {
+                        ticks: {
+                          autoSkip: false,
+                        },
+                      },
+                    },
+                  }}
+                />
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-medium text-lg mb-3">Item Statistics</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-500">
+                      Total Items Processed
+                    </p>
+                    <p className="text-xl font-semibold">
+                      {analyticsData.popularItems.stats
+                        ?.total_items_processed || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">
+                      Total Orders Analyzed
+                    </p>
+                    <p className="text-xl font-semibold">
+                      {analyticsData.popularItems.stats
+                        ?.total_orders_processed || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Skipped Items</p>
+                    <p className="text-xl font-semibold">
+                      {analyticsData.popularItems.stats?.skipped_items || 0}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
     </div>
