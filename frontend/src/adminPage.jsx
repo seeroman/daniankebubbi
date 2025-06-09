@@ -36,7 +36,6 @@ ChartJS.register(
 );
 
 const AdminPage = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [analyticsData, setAnalyticsData] = useState({
     hourlyTrends: [],
     dailyVolume: [],
@@ -46,11 +45,10 @@ const AdminPage = () => {
     overallStats: null,
   });
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('today');
 
   useEffect(() => {
     fetchAnalyticsData();
-  }, [timeRange]);
+  }, []);
 
   const fetchAnalyticsData = async () => {
     try {
@@ -208,50 +206,6 @@ const AdminPage = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        {/* Time Range Selector */}
-        <div className="mb-6 flex flex-wrap gap-2">
-          <button
-            onClick={() => setTimeRange('today')}
-            className={`px-4 py-2 rounded-md ${
-              timeRange === 'today'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 border'
-            }`}
-          >
-            Today
-          </button>
-          <button
-            onClick={() => setTimeRange('week')}
-            className={`px-4 py-2 rounded-md ${
-              timeRange === 'week'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 border'
-            }`}
-          >
-            This Week
-          </button>
-          <button
-            onClick={() => setTimeRange('month')}
-            className={`px-4 py-2 rounded-md ${
-              timeRange === 'month'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 border'
-            }`}
-          >
-            This Month
-          </button>
-          <button
-            onClick={() => setTimeRange('all')}
-            className={`px-4 py-2 rounded-md ${
-              timeRange === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 border'
-            }`}
-          >
-            All Time
-          </button>
-        </div>
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
