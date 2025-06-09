@@ -43,6 +43,7 @@ const AdminPage = () => {
     busyDays: [],
     todayStats: null,
     overallStats: null,
+    popularItems: { popular_items: [], stats: {} },
   });
   const [loading, setLoading] = useState(true);
 
@@ -79,6 +80,9 @@ const AdminPage = () => {
       const busyDays = await fetch(
         `${API_BASE_URL}/api/analytics/busy-days`,
       ).then((res) => res.json());
+      const popularItems = await fetch(
+        `${API_BASE_URL}/api/analytics/popular-items`,
+      ).then((res) => res.json());
 
       // Today's and overall stats
       const todayCompletion = await fetch(
@@ -93,12 +97,12 @@ const AdminPage = () => {
         dailyVolume,
         busyHours,
         busyDays,
+        popularItems,
         todayStats: todayCompletion,
         overallStats,
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);
-      // Optionally set error state here
     } finally {
       setLoading(false);
     }
@@ -195,6 +199,24 @@ const AdminPage = () => {
     ],
   };
 
+  // Process popular items data
+  const popularItemsChartData = {
+    labels: analyticsData.popularItems.popular_items.map(item => item.item_name),
+    datasets: [
+      {
+        label: 'Order Count',
+        data: analyticsData.popularItems.popular_items.map(item => ({
+          order_count: item.order_count,
+          percentage: item.percentage_of_total
+        })),
+        backgroundColor: 'rgba(99, 102, 241, 0.7)',
+        borderColor: 'rgba(99, 102, 241, 1)',
+        borderWidth: 1,
+        barThickness: 20,
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -281,7 +303,7 @@ const AdminPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* Busiest Hours */}
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Busiest Hours</h2>
@@ -308,6 +330,74 @@ const AdminPage = () => {
                   indexAxis: 'y',
                 }}
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Popular Items Section */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">Most Popular Menu Items</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Chart - takes 2/3 space on larger screens */}
+            <div className="lg:col-span-2 h-64 lg:h-80">
+              <Bar 
+                data={popularItemsChartData}
+                options={{
+                  indexAxis: 'y',
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    tooltip: {
+                      callbacks: {
+                        label: (context) => {
+                          const data = context.raw;
+                          return [
+                            `Orders: ${data.order_count}`,
+                            `Percentage: ${data.percentage}% of total`
+                          ];
+                        }
+                      }
+                    },
+                    legend: {
+                      display: false
+                    }
+                  },
+                  scales: {
+                    x: {
+                      beginAtZero: true,
+                      title: {
+                        display: true,
+                        text: 'Number of Orders'
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+            
+            {/* Stats Card - takes 1/3 space on larger screens */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-medium text-lg mb-3">Item Statistics</h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-500">Total Items Processed</p>
+                  <p className="text-xl font-semibold">
+                    {analyticsData.popularItems.stats?.total_items_processed || 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Total Orders Analyzed</p>
+                  <p className="text-xl font-semibold">
+                    {analyticsData.popularItems.stats?.total_orders_processed || 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Skipped Items</p>
+                  <p className="text-xl font-semibold">
+                    {analyticsData.popularItems.stats?.skipped_items || 0}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
