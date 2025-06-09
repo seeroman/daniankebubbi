@@ -4,7 +4,6 @@ import json
 from flask_cors import CORS
 from datetime import datetime
 import pytz
-import requests
 
 app = Flask(__name__)
 CORS(app)
@@ -270,38 +269,6 @@ def mark_order_done(order_id):
     finally:
         if 'conn' in locals():
             conn.close()
-
-COMPLETED_ORDERS_API = "https://daniankebubbi.onrender.com/api/orders/completed/all"
-
-
-@app.route('/api/analytics/popular-items', methods=['GET'])
-def get_popular_items():
-    try:
-        # Fetch completed orders
-        response = requests.get(COMPLETED_ORDERS_API)
-        response.raise_for_status()
-        completed_orders_data = response.json()
-
-        item_counter = Counter()
-
-        # Count all items from completed orders
-        for order in completed_orders_data:
-            for item in order.get('items', []):
-                name = item.get('name')
-                if name:
-                    item_counter[name] += 1
-
-        # Get top 5 popular items
-        popular_items = [
-            {"item_name": name, "order_count": count}
-            for name, count in item_counter.most_common(5)
-        ]
-
-        return jsonify(popular_items)
-    
-    except Exception as e:
-        app.logger.error(f"Error fetching or processing data: {str(e)}")
-        return jsonify({'error': str(e)}), 500
 
 # ========== ANALYTICS ENDPOINTS ==========
 @app.route('/api/analytics/hourly-trends', methods=['GET'])
