@@ -271,6 +271,106 @@ def mark_order_done(order_id):
             conn.close()
 
 # ========== ANALYTICS ENDPOINTS ==========
+@app.route('/api/analytics/popular-items', methods=['GET'])
+def get_popular_items():
+    try:
+        conn = get_db_connection()
+        
+        # Get all completed orders
+        orders = conn.execute(
+            '''SELECT items FROM orders WHERE status = "DONE"'''
+        ).fetchall()
+        
+        if not orders:
+            return jsonify({
+                'message': 'No completed orders found',
+                'popular_items': []
+            }), 200
+        
+        item_counts = {}
+        total_items_processed = 0
+        skipped_items = 0
+        
+        for order in orders:
+            try:
+                items = json.loads(order['items'])
+                if not isinstance(items, list):
+                    app.logger.warning(f"Items is not a list: {order['items']}")
+                    skipped_items += 1
+                    continue
+                
+                for item in items:
+                    if not isinstance(item, dict):
+                        app.logger.warning(f"Item is not a dictionary: {item}")
+                        skipped_items += 1
+                        continue
+                    
+                    try:
+                        item_name = item['name']
+                        if not isinstance(item_name, str) or not item_name.strip():
+                            app.logger.warning(f"Invalid item name: {item_name}")
+                            skipped_items += 1
+                            continue
+                            
+                        item_counts[item_name] = item_counts.get(item_name, 0) + 1
+                        total_items_processed += 1
+                    except KeyError:
+                        app.logger.warning(f"Item missing 'name' field: {item}")
+                        skipped_items += 1
+                        continue
+                        
+            except json.JSONDecodeError as e:
+                app.logger.error(f"Error parsing items JSON: {str(e)} - Raw data: {order['items']}")
+                skipped_items += 1
+                continue
+            except Exception as e:
+                app.logger.error(f"Unexpected error processing order: {str(e)}")
+                skipped_items += 1
+                continue
+        
+        if not item_counts:
+            return jsonify({
+                'message': 'No valid items found in completed orders',
+                'popular_items': [],
+                'stats': {
+                    'total_orders_processed': len(orders),
+                    'total_items_processed': total_items_processed,
+                    'skipped_items': skipped_items
+                }
+            }), 200
+        
+        # Sort by count descending and get top 5
+        popular_items = sorted(
+            item_counts.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:5]
+        
+        # Format response
+        response = {
+            'popular_items': [{
+                'item_name': item[0],
+                'order_count': item[1],
+                'percentage_of_total': round((item[1] / total_items_processed) * 100, 2)
+            } for item in popular_items],
+            'stats': {
+                'total_orders_processed': len(orders),
+                'total_items_processed': total_items_processed,
+                'skipped_items': skipped_items
+            }
+        }
+        
+        return jsonify(response)
+    except Exception as e:
+        app.logger.error(f"Error fetching popular items: {str(e)}")
+        return jsonify({
+            'error': 'Failed to process popular items',
+            'details': str(e)
+        }), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()
+            
 @app.route('/api/analytics/hourly-trends', methods=['GET'])
 def get_hourly_trends():
     try:
