@@ -271,7 +271,8 @@ def mark_order_done(order_id):
         if 'conn' in locals():
             conn.close()
 
-COMPLETED_ORDERS_API = "/api/orders/completed/all"
+COMPLETED_ORDERS_API = "https://daniankebubbi.onrender.com/api/orders/completed/all"
+
 
 @app.route('/api/analytics/popular-items', methods=['GET'])
 def get_popular_items():
