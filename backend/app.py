@@ -80,7 +80,7 @@ def initialize_database():
     finally:
         conn.close()
 
-# ========== DEBUG ENDPOINTS ==========
+# ========== DEBUG ENDPOINT ==========
 @app.route('/debug/schema')
 def debug_schema():
     conn = get_db_connection()
