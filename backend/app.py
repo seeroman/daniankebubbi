@@ -4,14 +4,81 @@ import json
 from flask_cors import CORS
 from datetime import datetime
 import pytz
+import os
 
 app = Flask(__name__)
 CORS(app)
 
+# Database file path (using absolute path for persistence)
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'orders.db')
+
 def get_db_connection():
-    conn = sqlite3.connect('orders.db')
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+def initialize_database():
+    """Initialize the database with required tables and schema"""
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        # Check if tables exist
+        tables = conn.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='orders'
+        """).fetchone()
+        
+        if not tables:
+            # Create tables with all necessary columns
+            conn.execute("""
+                CREATE TABLE orders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    custom_order_id TEXT,
+                    waiter TEXT NOT NULL,
+                    customer TEXT DEFAULT '',
+                    items TEXT NOT NULL,
+                    status TEXT DEFAULT 'NEW',
+                    time TEXT NOT NULL,
+                    paymentStatus TEXT DEFAULT 'UNPAID',
+                    completion_time TEXT,
+                    time_taken_minutes INTEGER,
+                    day_of_week INTEGER
+                )
+            """)
+            
+            # Create indexes
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_time ON orders(time)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)")
+            
+            conn.commit()
+            print("Database initialized with new tables")
+        else:
+            # Verify all columns exist
+            columns = [col[1] for col in conn.execute("PRAGMA table_info(orders)").fetchall()]
+            required_columns = [
+                'custom_order_id', 'waiter', 'customer', 'items', 'status',
+                'time', 'paymentStatus', 'completion_time', 'time_taken_minutes', 'day_of_week'
+            ]
+            
+            for column in required_columns:
+                if column not in columns:
+                    try:
+                        if column in ['completion_time', 'time_taken_minutes']:
+                            conn.execute(f"ALTER TABLE orders ADD COLUMN {column} TEXT")
+                        elif column == 'day_of_week':
+                            conn.execute(f"ALTER TABLE orders ADD COLUMN {column} INTEGER")
+                        else:
+                            conn.execute(f"ALTER TABLE orders ADD COLUMN {column} TEXT")
+                        conn.commit()
+                        print(f"Added missing column: {column}")
+                    except sqlite3.OperationalError as e:
+                        print(f"Column {column} already exists or couldn't be added: {str(e)}")
+            
+            print("Database already exists, verified schema")
+    except Exception as e:
+        print(f"Error initializing database: {str(e)}")
+        raise
+    finally:
+        conn.close()
 
 # ========== DEBUG ENDPOINTS ==========
 @app.route('/debug/schema')
@@ -265,6 +332,36 @@ def mark_order_done(order_id):
         })
     except Exception as e:
         app.logger.error(f"Error marking order done: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+# NEW ENDPOINT: Delete/Cancel Order
+@app.route('/api/orders/<int:order_id>', methods=['DELETE'])
+def delete_order(order_id):
+    try:
+        conn = get_db_connection()
+        
+        # First check if order exists
+        order = conn.execute('SELECT * FROM orders WHERE id = ?', (order_id,)).fetchone()
+        if not order:
+            return jsonify({'error': 'Order not found'}), 404
+        
+        # Delete the order
+        conn.execute('DELETE FROM orders WHERE id = ?', (order_id,))
+        conn.commit()
+        
+        return jsonify({
+            'message': 'Order deleted successfully',
+            'deleted_order': {
+                'id': order['id'],
+                'custom_order_id': order['custom_order_id'],
+                'status': order['status']
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Error deleting order: {str(e)}")
         return jsonify({'error': str(e)}), 500
     finally:
         if 'conn' in locals():
@@ -625,4 +722,5 @@ def get_all_completed_orders():
             conn.close()
 
 if __name__ == '__main__':
+    initialize_database()
     app.run(host='0.0.0.0', port=5000, debug=True)
