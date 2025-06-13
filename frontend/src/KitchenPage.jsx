@@ -56,36 +56,33 @@ const KitchenPage = () => {
       new Notification(title, { body });
     }
   };
- const handleBackupToGoogleDrive = async () => {
-    setBackupStatus({ loading: true, message: 'Starting backup...' });
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/backup`, {
-        method: 'POST',
-      });
-      const result = await response.json();
-      
-      if (response.ok) {
-        setBackupStatus({ 
-          loading: false, 
-          message: 'Backup successful!',
-          link: result.view_link 
-        });
-      } else {
-        setBackupStatus({ 
-          loading: false, 
-          message: result.message || 'Backup failed',
-          error: true 
-        });
-      }
-    } catch (error) {
-      setBackupStatus({ 
-        loading: false, 
-        message: 'Failed to connect to server',
-        error: true 
-      });
-      console.error('Backup failed:', error);
-    }
-  };
+const [backupStatus, setBackupStatus] = useState(null);
+
+const handleBackup = async () => {
+  setBackupStatus({ loading: true, message: "Starting backup..." });
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/backup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    
+    if (!response.ok) throw new Error("Backup failed");
+    const result = await response.json();
+    
+    setBackupStatus({ 
+      success: true,
+      message: "Backup successful!",
+      link: result.view_link 
+    });
+  } catch (error) {
+    setBackupStatus({ 
+      error: true, 
+      message: error.message || "Backup failed" 
+    });
+  }
+};
+
+  
   const fetchCompletedStats = async () => {
     try {
       const [todayRes, totalRes] = await Promise.all([
