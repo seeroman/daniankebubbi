@@ -12,6 +12,11 @@ CORS(app)
 # Database file path (using absolute path for persistence)
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'orders.db')
 
+# Initialize Google Drive credentials if they don't exist
+if not os.path.exists("credentials.json") and os.getenv("GDRIVE_CREDS_BASE64"):
+    with open("credentials.json", "wb") as f:
+        f.write(base64.b64decode(os.getenv("GDRIVE_CREDS_BASE64")))
+
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -720,6 +725,77 @@ def get_all_completed_orders():
     finally:
         if 'conn' in locals():
             conn.close()
+
+# ========== GOOGLE DRIVE BACKUP FUNCTIONALITY ==========
+@app.route('/backup', methods=['GET', 'POST'])
+def backup_ui():
+    """Endpoint to serve backup page"""
+    return render_template('backup.html')
+
+@app.route('/api/backup', methods=['POST'])
+def backup_to_gdrive():
+    """API endpoint to perform backup"""
+    try:
+        # 1. Create PostgreSQL dump
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        backup_file = f"backup_{timestamp}.sql"
+        
+        # For SQLite (your current DB)
+        if DB_PATH.endswith('.db'):
+            subprocess.run(f"sqlite3 {DB_PATH} .dump > {backup_file}", shell=True, check=True)
+        # For PostgreSQL (if you switch later)
+        else:
+            subprocess.run(f"pg_dump {os.getenv('DATABASE_URL')} > {backup_file}", shell=True, check=True)
+        
+        # 2. Upload to Google Drive
+        if not os.path.exists("credentials.json"):
+            return jsonify({
+                "status": "error",
+                "message": "Google Drive credentials not configured"
+            }), 500
+            
+        flow = InstalledAppFlow.from_client_secrets_file(
+            "credentials.json",
+            ["https://www.googleapis.com/auth/drive.file"]
+        )
+        creds = flow.run_local_server(port=0)
+        service = build("drive", "v3", credentials=creds)
+        
+        file_metadata = {
+            "name": backup_file,
+            "parents": [os.getenv("1niklBPbmoQmI4Io8NeBfUAQws7uJBiSv", "root")]  # Defaults to root if not specified
+        }
+        media = MediaFileUpload(backup_file)
+        
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="id,name,webViewLink"
+        ).execute()
+        
+        # Clean up local file
+        os.remove(backup_file)
+        
+        return jsonify({
+            "status": "success",
+            "message": "Backup completed successfully",
+            "file_id": file.get("id"),
+            "file_name": file.get("name"),
+            "view_link": file.get("webViewLink")
+        })
+    
+    except subprocess.CalledProcessError as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Database dump failed: {str(e)}",
+            "error_type": "database_dump"
+        }), 500
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Backup failed: {str(e)}",
+            "error_type": "google_drive"
+        }), 500
 
 if __name__ == '__main__':
     initialize_database()
