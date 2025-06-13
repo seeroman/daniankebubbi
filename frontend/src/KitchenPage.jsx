@@ -453,7 +453,7 @@ const handleBackup = async () => {
       
  <div className="flex justify-end pr-4 mb-6 gap-2">
         <button
-          onClick={handleBackupToGoogleDrive}
+          onClick={handleBackup}
           className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded shadow flex items-center"
           disabled={backupStatus?.loading}
         >
