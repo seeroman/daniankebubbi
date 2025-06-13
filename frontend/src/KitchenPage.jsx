@@ -56,7 +56,7 @@ const KitchenPage = () => {
       new Notification(title, { body });
     }
   };
-const [backupStatus, setBackupStatus] = useState(null);
+
 
 const handleBackup = async () => {
   setBackupStatus({ loading: true, message: "Starting backup..." });
