@@ -485,7 +485,7 @@ const KitchenPage = () => {
           🔁 Reset Counts
         </button>
       </div>
-       )}
+      
 
       {/* Backup status message */}
       {backupStatus && (
@@ -507,10 +507,10 @@ const KitchenPage = () => {
             onClick={() => setBackupStatus(null)} 
             className="ml-2 text-gray-500 hover:text-gray-700"
           >
-            ×
+      ×
           </button>
-      
-      </div>
+        </div>
+      )}
 
       {/* Main Content */}
       {showCompletedToday ? (
