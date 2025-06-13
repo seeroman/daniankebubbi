@@ -17,6 +17,7 @@ const KitchenPage = () => {
   const [showCompletedAll, setShowCompletedAll] = useState(false);
   const [completedOrdersTodayList, setCompletedOrdersTodayList] = useState([]);
   const [completedOrdersAllList, setCompletedOrdersAllList] = useState([]);
+  const [backupStatus, setBackupStatus] = useState(null);
   const [permissionsGranted, setPermissionsGranted] = useState(
     localStorage.getItem('kitchenPermissionsGranted') === 'true'
   );
@@ -55,7 +56,36 @@ const KitchenPage = () => {
       new Notification(title, { body });
     }
   };
-
+ const handleBackupToGoogleDrive = async () => {
+    setBackupStatus({ loading: true, message: 'Starting backup...' });
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/backup`, {
+        method: 'POST',
+      });
+      const result = await response.json();
+      
+      if (response.ok) {
+        setBackupStatus({ 
+          loading: false, 
+          message: 'Backup successful!',
+          link: result.view_link 
+        });
+      } else {
+        setBackupStatus({ 
+          loading: false, 
+          message: result.message || 'Backup failed',
+          error: true 
+        });
+      }
+    } catch (error) {
+      setBackupStatus({ 
+        loading: false, 
+        message: 'Failed to connect to server',
+        error: true 
+      });
+      console.error('Backup failed:', error);
+    }
+  };
   const fetchCompletedStats = async () => {
     try {
       const [todayRes, totalRes] = await Promise.all([
@@ -424,13 +454,61 @@ const KitchenPage = () => {
         </button>
       </div>
       
-      <div className="flex justify-end pr-4 mb-6">
+ <div className="flex justify-end pr-4 mb-6 gap-2">
+        <button
+          onClick={handleBackupToGoogleDrive}
+          className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded shadow flex items-center"
+          disabled={backupStatus?.loading}
+        >
+          {backupStatus?.loading ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Backing Up...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Backup to Google Drive
+            </>
+          )}
+        </button>
+        
         <button
           onClick={handleResetCounts}
           className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded shadow"
         >
           🔁 Reset Counts
         </button>
+      </div>
+
+      {/* Backup status message */}
+      {backupStatus && (
+        <div className={`fixed bottom-4 right-4 p-3 rounded shadow-lg text-sm ${
+          backupStatus.error ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+        }`}>
+          {backupStatus.message}
+          {backupStatus.link && (
+            <a 
+              href={backupStatus.link} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="ml-2 text-blue-600 hover:underline"
+            >
+              View in Drive
+            </a>
+          )}
+          <button 
+            onClick={() => setBackupStatus(null)} 
+            className="ml-2 text-gray-500 hover:text-gray-700"
+          >
+            ×
+          </button>
+      
       </div>
 
       {/* Main Content */}
