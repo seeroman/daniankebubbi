@@ -6,6 +6,11 @@ from datetime import datetime
 import pytz
 import os
 import subprocess
+import base64
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow  # This was missing
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 app = Flask(__name__)
 CORS(app)
@@ -727,7 +732,7 @@ def get_all_completed_orders():
 @app.route('/api/backup', methods=['POST'])
 def backup_to_gdrive():
     try:
-        # 1. Validate credentials
+        # 1. Load or create credentials file
         creds_file = "credentials.json"
         if not os.path.exists(creds_file):
             if not os.getenv("GDRIVE_CREDS_BASE64"):
@@ -744,7 +749,7 @@ def backup_to_gdrive():
         backup_file = f"backup_{timestamp}.sql"
         
         try:
-            if os.getenv("postgresql://rders_production_user:vaqQuge2TLNM4mO9AVhs3qnaZQPb5K3Y@dpg-d1689jggjchc7397eu4g-a/rders_production"):  # PostgreSQL
+            if os.getenv("DATABASE_URL"):  # PostgreSQL
                 cmd = f"pg_dump {os.getenv('DATABASE_URL')} > {backup_file}"
             else:  # SQLite
                 cmd = f"sqlite3 orders.db .dump > {backup_file}"
@@ -764,7 +769,7 @@ def backup_to_gdrive():
             
             file_metadata = {
                 "name": backup_file,
-                "parents": [os.getenv("1niklBPbmoQmI4Io8NeBfUAQws7uJBiSv", "root")]
+                "parents": [os.getenv("GDRIVE_FOLDER_ID", "root")]
             }
             media = MediaFileUpload(backup_file)
             
@@ -775,7 +780,6 @@ def backup_to_gdrive():
             ).execute()
 
             os.remove(backup_file)
-            
             return jsonify({
                 "status": "success",
                 "file_id": file.get("id"),
