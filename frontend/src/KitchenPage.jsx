@@ -57,30 +57,41 @@ const KitchenPage = () => {
     }
   };
 
+  const handleBackup = async () => {
+    setBackupStatus({ loading: true, message: 'Starting backup...', error: false });
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/backup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-const handleBackup = async () => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/backup`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch {
+        throw new Error(text || 'Invalid server response');
       }
-    });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(result.error || 'Backup failed');
+      }
+
+      setBackupStatus({
+        loading: false,
+        message: 'Backup completed successfully!',
+        link: result.view_link,
+        error: false
+      });
+    } catch (error) {
+      setBackupStatus({
+        loading: false,
+        message: error.message || 'Backup failed. Please try again.',
+        error: true
+      });
     }
+  };
 
-    const result = await response.json();
-    console.log("Backup successful:", result);
-    // Handle success (update UI, show notification, etc.)
-  } catch (error) {
-    console.error("Backup failed:", error);
-    // Handle error (show error message)
-  }
-};
-
-  
   const fetchCompletedStats = async () => {
     try {
       const [todayRes, totalRes] = await Promise.all([
@@ -191,9 +202,6 @@ const handleBackup = async () => {
         fetchCompletedStats();
         fetchCompletedOrdersToday();
         fetchCompletedOrdersAll();
-        
-        // Show completion alert
-       // alert(`Order #${orderId} completed in ${result.time_taken_minutes} minutes`);
       }
     } catch (error) {
       console.error('Failed to mark order as done:', error);
@@ -404,7 +412,6 @@ const handleBackup = async () => {
     <div className="p-4 bg-gray-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-center">👨‍🍳 Kitchen View</h1>
 
-      {/* New order alert */}
       {newOrderAlert && (
         <div className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded shadow-lg animate-pulse flex items-center">
           🔔 New Order! (Tab is muted)
@@ -417,7 +424,6 @@ const handleBackup = async () => {
         </div>
       )}
 
-      {/* Stats Dashboard */}
       <div className="flex justify-end mb-4 gap-6 pr-4">
         <button 
           onClick={toggleCompletedToday}
@@ -449,15 +455,15 @@ const handleBackup = async () => {
         </button>
       </div>
       
- <div className="flex justify-end pr-4 mb-6 gap-2">
+      <div className="flex justify-end pr-4 mb-6 gap-2">
         <button
           onClick={handleBackup}
-          className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded shadow flex items-center"
+          className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded shadow flex items-center gap-2"
           disabled={backupStatus?.loading}
         >
           {backupStatus?.loading ? (
             <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -465,10 +471,10 @@ const handleBackup = async () => {
             </>
           ) : (
             <>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              Backup to Google Drive
+              Backup to Drive
             </>
           )}
         </button>
@@ -480,34 +486,33 @@ const handleBackup = async () => {
           🔁 Reset Counts
         </button>
       </div>
-      
 
-      {/* Backup status message */}
       {backupStatus && (
         <div className={`fixed bottom-4 right-4 p-3 rounded shadow-lg text-sm ${
           backupStatus.error ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
         }`}>
-          {backupStatus.message}
-          {backupStatus.link && (
-            <a 
-              href={backupStatus.link} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="ml-2 text-blue-600 hover:underline"
+          <div className="flex items-center">
+            {backupStatus.error ? '❌' : '✅'} {backupStatus.message}
+            {backupStatus.link && (
+              <a 
+                href={backupStatus.link} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="ml-2 text-blue-600 hover:underline"
+              >
+                View
+              </a>
+            )}
+            <button 
+              onClick={() => setBackupStatus(null)} 
+              className="ml-2 text-gray-500 hover:text-gray-700"
             >
-              View in Drive
-            </a>
-          )}
-          <button 
-            onClick={() => setBackupStatus(null)} 
-            className="ml-2 text-gray-500 hover:text-gray-700"
-          >
-      ×
-          </button>
+              ×
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Main Content */}
       {showCompletedToday ? (
         <>
           <h2 className="text-2xl font-bold mb-4 text-center text-green-600">
