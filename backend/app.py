@@ -732,65 +732,53 @@ def get_all_completed_orders():
 @app.route('/api/backup', methods=['POST'])
 def backup_to_gdrive():
     try:
-        # 1. Load or create credentials file
-        creds_file = "credentials.json"
+        # Path to the uploaded credentials file
+        creds_file = "/etc/secrets/client_secret_581275813177-6jl5v9e58c8hqelt4upa364kh4iuis2r.apps.googleusercontent.com.json"  # Render secrets file 
+        
         if not os.path.exists(creds_file):
-            if not os.getenv("GDRIVE_CREDS_BASE64"):
-                return jsonify({"error": "Google Drive credentials missing"}), 400
-            
-            try:
-                with open(creds_file, "wb") as f:
-                    f.write(base64.b64decode(os.getenv("GDRIVE_CREDS_BASE64")))
-            except Exception as e:
-                return jsonify({"error": f"Invalid credentials: {str(e)}"}), 400
+            return jsonify({"error": "Google Drive credentials file not found"}), 400
 
-        # 2. Create database dump
+        # Rest of your backup logic remains the same
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         backup_file = f"backup_{timestamp}.sql"
         
-        try:
-            if os.getenv("DATABASE_URL"):  # PostgreSQL
-                cmd = f"pg_dump {os.getenv('DATABASE_URL')} > {backup_file}"
-            else:  # SQLite
-                cmd = f"sqlite3 orders.db .dump > {backup_file}"
+        # Database dump (SQLite/PostgreSQL)
+        if os.getenv("postgresql://rders_production_user:vaqQuge2TLNM4mO9AVhs3qnaZQPb5K3Y@dpg-d1689jggjchc7397eu4g-a/rders_production"):  # PostgreSQL
+            subprocess.run(f"pg_dump {os.getenv('DATABASE_URL')} > {backup_file}", 
+                         shell=True, check=True)
+        else:  # SQLite
+            subprocess.run(f"sqlite3 orders.db .dump > {backup_file}", 
+                         shell=True, check=True)
+
+        # Google Drive upload
+        flow = InstalledAppFlow.from_client_secrets_file(
+            creds_file,
+            ["https://www.googleapis.com/auth/drive.file"]
+        )
+        creds = flow.run_local_server(port=0)
+        service = build("drive", "v3", credentials=creds)
+        
+        file_metadata = {"name": backup_file}
+        if os.getenv("GDRIVE_FOLDER_ID"):
+            file_metadata["parents"] = [os.getenv("1niklBPbmoQmI4Io8NeBfUAQws7uJBiSv")]
             
-            subprocess.run(cmd, shell=True, check=True, stderr=subprocess.PIPE)
-        except subprocess.CalledProcessError as e:
-            return jsonify({"error": f"Database export failed: {e.stderr.decode().strip()}"}), 500
+        media = MediaFileUpload(backup_file)
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="webViewLink"
+        ).execute()
 
-        # 3. Upload to Google Drive
-        try:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                creds_file,
-                ["https://www.googleapis.com/auth/drive.file"]
-            )
-            creds = flow.run_local_server(port=0)
-            service = build("drive", "v3", credentials=creds)
-            
-            file_metadata = {
-                "name": backup_file,
-                "parents": [os.getenv("GDRIVE_FOLDER_ID", "root")]
-            }
-            media = MediaFileUpload(backup_file)
-            
-            file = service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields="id,name,webViewLink"
-            ).execute()
+        os.remove(backup_file)
+        return jsonify({
+            "status": "success",
+            "link": file.get("webViewLink")
+        })
 
-            os.remove(backup_file)
-            return jsonify({
-                "status": "success",
-                "file_id": file.get("id"),
-                "view_link": file.get("webViewLink")
-            })
-
-        except Exception as e:
-            return jsonify({"error": f"Google Drive error: {str(e)}"}), 500
-
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Database dump failed: {e.stderr}"}), 500
     except Exception as e:
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
