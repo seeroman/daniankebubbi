@@ -485,6 +485,7 @@ const KitchenPage = () => {
           🔁 Reset Counts
         </button>
       </div>
+       )}
 
       {/* Backup status message */}
       {backupStatus && (
