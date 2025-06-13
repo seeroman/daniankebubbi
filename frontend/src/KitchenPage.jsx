@@ -59,26 +59,24 @@ const KitchenPage = () => {
 
 
 const handleBackup = async () => {
-  setBackupStatus({ loading: true, message: "Starting backup..." });
   try {
     const response = await fetch(`${API_BASE_URL}/api/backup`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      }
     });
-    
-    if (!response.ok) throw new Error("Backup failed");
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const result = await response.json();
-    
-    setBackupStatus({ 
-      success: true,
-      message: "Backup successful!",
-      link: result.view_link 
-    });
+    console.log("Backup successful:", result);
+    // Handle success (update UI, show notification, etc.)
   } catch (error) {
-    setBackupStatus({ 
-      error: true, 
-      message: error.message || "Backup failed" 
-    });
+    console.error("Backup failed:", error);
+    // Handle error (show error message)
   }
 };
 
